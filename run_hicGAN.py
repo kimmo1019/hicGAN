@@ -1,9 +1,6 @@
 
 # coding: utf-8
 
-# In[1]:
-
-
 import os, time, pickle, random, time, sys, math
 from datetime import datetime
 import numpy as np
@@ -20,11 +17,12 @@ import hickle as hkl
 
 
 #GPU setting and Global parameters
-os.environ["CUDA_VISIBLE_DEVICES"] = "6,7"
+os.environ["CUDA_VISIBLE_DEVICES"] = "4,5,6"
 #checkpoint = "checkpoint"
 checkpoint = sys.argv[1]
 #log_dir = "log"
 log_dir = sys.argv[2]
+graph_dir = sys.argv[3]
 save_dir_gan = "samples"
 tl.global_flag['mode']='hicgan'
 tl.files.exists_or_mkdir(checkpoint)
@@ -36,7 +34,7 @@ beta1 = 0.9
 ## initialize G
 #n_epoch_init = 100
 n_epoch_init = 1
-n_epoch = 500
+n_epoch = 3000
 lr_decay = 0.1
 decay_every = int(n_epoch / 2)
 ni = int(np.sqrt(batch_size))
@@ -248,14 +246,23 @@ g_optim_init = tf.train.AdamOptimizer(lr_v, beta1=beta1).minimize(mse_loss, var_
 g_optim = tf.train.AdamOptimizer(lr_v, beta1=beta1).minimize(g_loss, var_list=g_vars)
 d_optim = tf.train.AdamOptimizer(lr_v, beta1=beta1).minimize(d_loss, var_list=d_vars)
 
-
-# In[127]:
-
+#summary variables
+tf.summary.scalar("d_loss1", d_loss1)
+tf.summary.scalar("d_loss2", d_loss2)
+tf.summary.scalar("d_loss", d_loss)
+tf.summary.scalar("mse_loss", mse_loss)
+tf.summary.scalar("g_gan_loss", g_gan_loss)
+tf.summary.scalar("g_combine_loss", 5e-2*g_gan_loss+mse_loss)
+merged_summary = tf.summary.merge_all()
 
 #Model pretraining G
 
 sess = tf.Session(config=tf.ConfigProto(allow_soft_placement=True, log_device_placement=False))
 tl.layers.initialize_global_variables(sess)
+
+#record variables for tensorboard visualization
+summary_writer=tf.summary.FileWriter('%s'%graph_dir,graph=tf.get_default_graph())
+
 # sess.run(tf.assign(lr_v, lr_init))
 # print(" ** fixed learning rate: %f (for init G)" % lr_init)
 # f_out = open('%s/pre_train.log'%log_dir,'w')
@@ -326,6 +333,11 @@ for epoch in range(0, n_epoch + 1):
                                                                             total_g_loss / n_iter)
     print(log)
     f_out.write(log)
+    #record variables
+    summary=sess.run(merged_summary,{t_image: b_imgs_input, t_target_image: b_imgs_target})
+    summary_writer.add_summary(summary, epoch)
+    
+    
 
     ## quick evaluation on test sample
 #     if (epoch != 0) and (epoch % 5 == 0):
@@ -345,7 +357,6 @@ for epoch in range(0, n_epoch + 1):
 #out = sess.run(net_g.outputs, {t_image: test_sample})
 
 
-# In[ ]:
 
 
 

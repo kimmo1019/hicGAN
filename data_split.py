@@ -129,25 +129,25 @@ def data_split(chrom_list,norm_type):
     return hr_mats,lr_mats,distance_all
 
 
-# hr_mats_train,lr_mats_train,distance_train = data_split(['chr%d'%idx for idx in list(range(1,18))],norm_type=0)
-# hr_mats_test,lr_mats_test,distance_test = data_split(['chr%d'%idx for idx in list(range(18,23))],norm_type=0)
-# hkl.dump([lr_mats_train,hr_mats_train,distance_train],'%s/train_data_raw_count.hkl'%save_dir)
-# hkl.dump([lr_mats_test,hr_mats_test,distance_test],'%s/test_data_raw_count.hkl'%save_dir)
+hr_mats_train,lr_mats_train,distance_train = data_split(['chr%d'%idx for idx in list(range(1,18))],norm_type=0)
+hr_mats_test,lr_mats_test,distance_test = data_split(['chr%d'%idx for idx in list(range(18,23))],norm_type=0)
+hkl.dump([lr_mats_train,hr_mats_train,distance_train],'%s/train_data_raw_count.hkl'%save_dir)
+hkl.dump([lr_mats_test,hr_mats_test,distance_test],'%s/test_data_raw_count.hkl'%save_dir)
 
-# hr_mats_train,lr_mats_train,distance_train = data_split(['chr%d'%idx for idx in list(range(1,18))],norm_type=1)
-# hr_mats_test,lr_mats_test,distance_test = data_split(['chr%d'%idx for idx in list(range(18,23))],norm_type=1)
-# hkl.dump([lr_mats_train,hr_mats_train,distance_train],'%s/train_data_log_trans.hkl'%save_dir)
-# hkl.dump([lr_mats_test,hr_mats_test,distance_test],'%s/test_data_log_trans.hkl'%save_dir)
+hr_mats_train,lr_mats_train,distance_train = data_split(['chr%d'%idx for idx in list(range(1,18))],norm_type=1)
+hr_mats_test,lr_mats_test,distance_test = data_split(['chr%d'%idx for idx in list(range(18,23))],norm_type=1)
+hkl.dump([lr_mats_train,hr_mats_train,distance_train],'%s/train_data_log_trans.hkl'%save_dir)
+hkl.dump([lr_mats_test,hr_mats_test,distance_test],'%s/test_data_log_trans.hkl'%save_dir)
 
-# hr_mats_train,lr_mats_train,distance_train = data_split(['chr%d'%idx for idx in list(range(1,18))],norm_type=2)
-# hr_mats_test,lr_mats_test,distance_test = data_split(['chr%d'%idx for idx in list(range(18,23))],norm_type=2)
-# hkl.dump([lr_mats_train,hr_mats_train,distance_train],'%s/train_data_log_trans_scaled_sym.hkl'%save_dir)
-# hkl.dump([lr_mats_test,hr_mats_test,distance_test],'%s/test_data_log_trans_scaled_sym.hkl'%save_dir)
+hr_mats_train,lr_mats_train,distance_train = data_split(['chr%d'%idx for idx in list(range(1,18))],norm_type=2)
+hr_mats_test,lr_mats_test,distance_test = data_split(['chr%d'%idx for idx in list(range(18,23))],norm_type=2)
+hkl.dump([lr_mats_train,hr_mats_train,distance_train],'%s/train_data_log_trans_scaled_sym.hkl'%save_dir)
+hkl.dump([lr_mats_test,hr_mats_test,distance_test],'%s/test_data_log_trans_scaled_sym.hkl'%save_dir)
 
-# hr_mats_train,lr_mats_train,distance_train = data_split(['chr%d'%idx for idx in list(range(1,18))],norm_type=3)
-# hr_mats_test,lr_mats_test,distance_test = data_split(['chr%d'%idx for idx in list(range(18,23))],norm_type=3)
-# hkl.dump([lr_mats_train,hr_mats_train,distance_train],'%s/train_data_log_trans_scaled_asym.hkl'%save_dir)
-# hkl.dump([lr_mats_test,hr_mats_test,distance_test],'%s/test_data_log_trans_scaled_asym.hkl'%save_dir)
+hr_mats_train,lr_mats_train,distance_train = data_split(['chr%d'%idx for idx in list(range(1,18))],norm_type=3)
+hr_mats_test,lr_mats_test,distance_test = data_split(['chr%d'%idx for idx in list(range(18,23))],norm_type=3)
+hkl.dump([lr_mats_train,hr_mats_train,distance_train],'%s/train_data_log_trans_scaled_asym.hkl'%save_dir)
+hkl.dump([lr_mats_test,hr_mats_test,distance_test],'%s/test_data_log_trans_scaled_asym.hkl'%save_dir)
 
 
 
