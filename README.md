@@ -8,7 +8,7 @@ hicGAN infers super resolution Hi-C data with generative adversarial networks
 # Installation
 Download hicGAN by
 ```shell
-git clone https://github.com/kimmo1019/Deopen
+git clone https://github.com/kimmo1019/hicGAN
 ```
 Installation has been tested in a Linux/MacOS platform with Python2.7.
 
