@@ -1,5 +1,5 @@
 # hicGAN
-hicGAN infers super resolution Hi-C data with generative adversarial networks
+We proposed hicGAN, an open-sourced framework, for inferring high resolution Hi-C data from low resolution Hi-C data with generative adversarial networks (GANs)
 
 # Requirements
 - TensorFlow
