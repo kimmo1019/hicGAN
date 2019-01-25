@@ -45,7 +45,7 @@ For example, one can directly run `python data_split.py data/GM12878 data/GM1287
 
 Step 4: Run hicGAN model
 After preparing the training and test data, one can run the following commond to run hicGAN
-```
+```shell
 python run_hicGAN.py <gpu_id> <checkpoint> <graph> <PATH-TO-SAVA-DATA>
 ```
 Note that `checkpoint` is the folder to save model and 'graph' is the folder for visualization with `TensorBoard`.
