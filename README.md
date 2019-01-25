@@ -22,7 +22,7 @@ We provide detailed step-by-step instructions for running hicGAN model for repro
 
 Step 1: Download raw aligned sequencing reads from Hi-C experiments
 
-We preprocess Hi-C data from alighed sequencing reads (e.g. ```GSM1551550_HIC001_merged_nodups.txt.gz```)
+We preprocess Hi-C data from alighed sequencing reads (e.g. ```GSM1551550_HIC001_merged_nodups.txt.gz``` from Rao SS *et al*. 2014)
 
 
 
