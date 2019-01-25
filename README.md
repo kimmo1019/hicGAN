@@ -3,7 +3,7 @@ We proposed hicGAN, an open-sourced framework, for inferring high resolution Hi-
 
 ![model](https://github.com/kimmo1019/hicGAN/blob/master/model.png)
 
-hicGAN consists of two networks that compete with each other. G tries to generate super resolution samples that are highly similar to real high resolution samples while D tries to discriminate generated super resolution sam- ples from real high resolution Hi-C samples.
+hicGAN consists of two networks that compete with each other. G tries to generate super resolution samples that are highly similar to real high resolution samples while D tries to discriminate generated super resolution samples from real high resolution Hi-C samples.
 
 # Requirements
 - TensorFlow >= 1.10.0
@@ -11,13 +11,18 @@ hicGAN consists of two networks that compete with each other. G tries to generat
 - hickle >= 2.1.0
 
 # Installation
-Download hicGAN by
+hicGAN can be downloaded by
 ```shell
 git clone https://github.com/kimmo1019/hicGAN
 ```
-Installation has been tested in a Linux/MacOS platform with Python2.7.
+Installation has been tested in a Linux/MacOS platform.
 
 # Instructions
+We provide detailed step-by-step instructions for running hicGAN model for reproducing the results in the original paper and inferring high resolution Hi-C data of your own interst.
+
+Step 1: Download raw aligned sequencing reads from Hi-C experiments
+
+
 
 
 
