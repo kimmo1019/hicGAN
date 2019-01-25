@@ -20,7 +20,9 @@ Installation has been tested in a Linux/MacOS platform.
 # Instructions
 We provide detailed step-by-step instructions for running hicGAN model for reproducing the results in the original paper and inferring high resolution Hi-C data of your own interst.
 
-## Step 1: Download raw aligned sequencing reads from Hi-C experiments
+Step 1: Download raw aligned sequencing reads from Hi-C experiments
+
+
 
 
 
