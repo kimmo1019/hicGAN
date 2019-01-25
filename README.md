@@ -1,9 +1,12 @@
 # hicGAN
 We proposed hicGAN, an open-sourced framework, for inferring high resolution Hi-C data from low resolution Hi-C data with generative adversarial networks (GANs)
 
+
+
 # Requirements
-- TensorFlow
-- TensorLayer
+- TensorFlow >= 1.10.0
+- TensorLayer >= 1.9.1
+- hickle >= 2.1.0
 
 # Installation
 Download hicGAN by
