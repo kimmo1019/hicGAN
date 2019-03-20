@@ -10,6 +10,7 @@ hicGAN consists of two networks that compete with each other. G tries to generat
 - TensorLayer >= 1.9.1
 - hickle >= 2.1.0
 - Java JDK >= 1.8.0
+- Juicer Tool
 
 # Installation
 hicGAN can be downloaded by
