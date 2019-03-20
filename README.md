@@ -52,6 +52,8 @@ Note that `checkpoint` is the folder to save model and 'graph' is the folder for
 
 We finally provide a `demo.ipynb` to implement the above steps with a demo of Hi-C model.
 
+Note that we also provide a pre-trained model of hicGAN which was trained in assemble cell lines.
+
 
 
 
