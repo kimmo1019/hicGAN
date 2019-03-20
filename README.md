@@ -33,7 +33,7 @@ We use Juicer toolbox for preprocessing the raw Hi-C data. Ensure that `Java` an
 ```shell
 bash preprocess.sh <PATH-TO-DATA> <CELL> <Resolution>
 ```
-For example, one can directly run `bash preprocess.sh data data/GM12878 100000` to extract Hi-C raw contacts with resolution 10k.
+For example, one can directly run `bash preprocess.sh data data/GM12878 10000` to extract Hi-C raw contacts with resolution 10k.
 
 Step 3: Preprate the training and test data
 
