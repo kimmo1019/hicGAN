@@ -1,6 +1,7 @@
 #!/bin/bash
+#Usage: bash raw_data_download_script.sh GM12878
 
-#Cell type indexes are as follows (refer to GSE63525):
+#Cell type indexes are listed as follows (refer to GSE63525):
 #GM12878 idx: 1-18
 #K562 idx:69-74
 #IMR90 idx:50-56

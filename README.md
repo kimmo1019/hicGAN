@@ -26,7 +26,7 @@ We provide detailed step-by-step instructions for running hicGAN model for repro
 
 Step 1: Download raw aligned sequencing reads from Hi-C experiments
 
-We preprocess Hi-C data from alighed sequencing reads (e.g. ```GSM1551550_HIC001_merged_nodups.txt.gz``` from Rao *et al*. 2014). One can directly download raw Hi-C data from GEO database or refer to our `raw_data_download_script.sh` script in the `preprocess` folder. Prepare your raw Hi-C data under a `CELL` folder.
+We preprocess Hi-C data from alighed sequencing reads (e.g. ```GSM1551550_HIC001_merged_nodups.txt.gz``` from Rao *et al*. 2014). One can directly download raw Hi-C data from GEO database or refer to our `raw_data_download_script.sh` script in the `preprocess` folder. Prepare your raw Hi-C data under a `CELL` folder. Please note that the download may take long time.
 
 Step 2: Generate Hi-C raw contacts for both high resolutio Hi-C data and down-sampled low resolution Hi-C data given a 
 resolution
