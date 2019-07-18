@@ -24,11 +24,11 @@ Installation has been tested in a Linux/MacOS platform.
 # Instructions
 We provide detailed step-by-step instructions for running hicGAN model for reproducing the results in the original paper and inferring high resolution Hi-C data of your own interst.
 
-Step 1: Download raw aligned sequencing reads from Hi-C experiments
+**Step 1**: Download raw aligned sequencing reads from Hi-C experiments
 
 We preprocess Hi-C data from alighed sequencing reads (e.g. ```GSM1551550_HIC001_merged_nodups.txt.gz``` from Rao *et al*. 2014). One can directly download raw Hi-C data from GEO database or refer to our `raw_data_download_script.sh` script in the `preprocess` folder. You will generate raw Hi-C data under a `PATH-to-hicGAN/data/CELL` folder. Please note that the download may take long time.
 
-Step 2: Generate Hi-C raw contacts for both high resolutio Hi-C data and down-sampled low resolution Hi-C data given a 
+**Step 2**: Generate Hi-C raw contacts for both high resolutio Hi-C data and down-sampled low resolution Hi-C data given a 
 resolution
 
 We use Juicer toolbox for preprocessing the raw Hi-C data. Ensure that `Java` and `Juicer toolbox` are installed in your system. One can generate Hi-C raw contacts for both high resolutio Hi-C data and down-sampled low resolution Hi-C data by running `preprocess.sh` script in the `preprocess` folder. Note that one can speed up the preprocessing using `slurm` by modify one line of `preprocess.sh`. See annotation in `preprocess.sh`.`
@@ -38,7 +38,7 @@ bash preprocess.sh <CELL> <Resolution> <path/to/juicer_tools.jar>
 For example, one can directly run `bash preprocess.sh GM12878 10000 path/to/juicer_tools.jar` to extract Hi-C raw contacts of GM12878 cell line with resolution 10k.
 
 
-Step 3: Preprate the training and test data
+**Step 3**: Preprate the training and test data
 
 Typically, Hi-C samples from chromosomes 1-17 will be kept for training and chromosomes 18-22 will be kept for testing in each cell type.
 
@@ -47,7 +47,7 @@ python data_split.py  <CELL>
 ```
 For example, one can directly run `python data_split.py GM12878` to generate `train_data.hkl` and `test_data.hkl` under the `data/GM12878 data folder`. 
 
-Step 4: Run hicGAN model
+**Step 4**: Run hicGAN model
 After preparing the training and test data, one can run the following commond to run hicGAN
 ```shell
 python run_hicGAN.py <gpu_id> <checkpoint> <log> <graph> <CELL>
@@ -55,7 +55,7 @@ python run_hicGAN.py <gpu_id> <checkpoint> <log> <graph> <CELL>
 For example, one can run `python run_hicGAN 0 Checkpoint/GM12878 log/GM12878 Graph/GM12878 GM12878` 
 Note that `checkpoint` is the folder to save model and 'graph' is the folder for visualization with `TensorBoard` and `log` is the folder to save the loss during the training process. The three folders will be created if not exist.
 
-Step 5: Evaluate hicGAN model
+**Step 5**: Evaluate hicGAN model
 After model training, one can evaluate the hicGAN by calculating MSR, PSNR and SSIM measurements, just run the following commond
 ```shell
 python hicGAN_evaluate.py <GPU_ID> <checkpoint> <CELL>
@@ -67,7 +67,7 @@ We finally provide a `demo.ipynb` to implement the above steps with a demo of Hi
 Note that we also provide a pre-trained model of hicGAN which was trained in K562 cell line.
 
 # Citation
-Liu Q, Lv H, Jiang R. hicGAN infers super resolution Hi-C data with generative adversarial networks[J]. Bioinformatics, 2021, 35(14): i99-i107.
+**Liu Q**, Lv H, Jiang R. hicGAN infers super resolution Hi-C data with generative adversarial networks[J]. Bioinformatics, 2021, 35(14): i99-i107.
 ```
 @article{liu2019hicgan,
   title={hicGAN infers super resolution Hi-C data with generative adversarial networks},
