@@ -31,7 +31,7 @@ We preprocess Hi-C data from alighed sequencing reads (e.g. ```GSM1551550_HIC001
 **Step 2**: Generate Hi-C raw contacts for both high resolutio Hi-C data and down-sampled low resolution Hi-C data given a 
 resolution
 
-We use Juicer toolbox for preprocessing the raw Hi-C data. Ensure that `Java` and `Juicer toolbox` are installed in your system. One can generate Hi-C raw contacts for both high resolutio Hi-C data and down-sampled low resolution Hi-C data by running `preprocess.sh` script in the `preprocess` folder. Note that one can speed up the preprocessing using `slurm` by modify one line of `preprocess.sh`. See annotation in `preprocess.sh`.`
+We use Juicer toolbox for preprocessing the raw Hi-C data. Ensure that `Java` and `Juicer toolbox` are installed in your system. One can generate Hi-C raw contacts for both high resolutio Hi-C data and down-sampled low resolution Hi-C data by running `preprocess.sh` script in the `preprocess` folder. Note that one can speed up the preprocessing using `slurm` by modify one line of `preprocess.sh`. See annotation in `preprocess.sh`.
 ```shell
 bash preprocess.sh <CELL> <Resolution> <path/to/juicer_tools.jar>
 ```
