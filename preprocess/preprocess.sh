@@ -2,6 +2,8 @@
 PPATH=$(dirname $(readlink -f "$0"))
 DPATH=${PPATH/preprocess/data}
 CELL=$1
+resolution=$2
+juicer_path=$3
 mkdir -p "$DPATH/$CELL"
 #merge raw data 
 find "$DPATH/$CELL" -name "*_merged_nodups.txt.gz"|xargs zcat | sort -k3,3d -k7,7d > "$DPATH/$CELL/total_merged_nodups.txt"
@@ -27,6 +29,6 @@ chromes=(1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 "X" "Y")
 #generate Hi-C raw contacts using iuicer tool
 for chrom in ${chromes[@]}
 do
-	sbatch $PPATH/sbatch_juicer_script.sh $chrom $DPATH $CELL
-	#directly run "bash sbatch_juicer_script.sh $chrom $DPATH $CELL" if slurm is not installed
+	bash $PPATH/sbatch_juicer_script.sh $chrom $DPATH $CELL $resolution $juicer_path
+	#replace with "sbatch sbatch_juicer_script.sh $chrom $DPATH $CELL $resolution $juicer_path" if slurm is installed, this will save a lot time.
 done

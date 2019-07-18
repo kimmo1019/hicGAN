@@ -15,12 +15,13 @@ import hickle as hkl
 
 
 #GPU setting and Global parameters
-os.environ["CUDA_VISIBLE_DEVICES"] = "4,5,6"
+os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 #checkpoint = "checkpoint"
 checkpoint = sys.argv[1]
 #log_dir = "log"
 log_dir = sys.argv[2]
 graph_dir = sys.argv[3]
+cell = sys.argv[4]
 save_dir_gan = "samples"
 tl.global_flag['mode']='hicgan'
 tl.files.exists_or_mkdir(checkpoint)
@@ -30,7 +31,6 @@ batch_size = 128
 lr_init = 1e-5
 beta1 = 0.9
 ## initialize G
-#n_epoch_init = 100
 n_epoch_init = 1
 n_epoch = 3000
 lr_decay = 0.1
@@ -38,109 +38,9 @@ decay_every = int(n_epoch / 2)
 ni = int(np.sqrt(batch_size))
 
 
-# In[77]:
 
-
-#Data preparation and preprocessing
-def hic_matrix_extraction(DPATH,res=10000,norm_method='NONE'):
-    chrom_list = list(range(1,23))#chr1-chr22
-    hr_contacts_dict={}
-    for each in chrom_list:
-        hr_hic_file = '%s/intra_%s/chr%d_10k_intra_%s.txt'%(DPATH,norm_method,each,norm_method)
-        chrom_len = {item.split()[0]:int(item.strip().split()[1]) for item in open('%s/chromosome.txt'%DPATH).readlines()}
-        mat_dim = int(math.ceil(chrom_len['chr%d'%each]*1.0/res))
-        hr_contact_matrix = np.zeros((mat_dim,mat_dim))
-        for line in open(hr_hic_file).readlines():
-            idx1, idx2, value = int(line.strip().split('\t')[0]),int(line.strip().split('\t')[1]),float(line.strip().split('\t')[2])
-            hr_contact_matrix[idx1/res][idx2/res] = value
-        hr_contact_matrix+= hr_contact_matrix.T - np.diag(hr_contact_matrix.diagonal())
-        hr_contacts_dict['chr%d'%each] = hr_contact_matrix
-    lr_contacts_dict={}
-    for each in chrom_list:
-        lr_hic_file = '%s/intra_%s/chr%d_10k_intra_%s_downsample_ratio16.txt'%(DPATH,norm_method,each,norm_method)
-        chrom_len = {item.split()[0]:int(item.strip().split()[1]) for item in open('%s/chromosome.txt'%DPATH).readlines()}
-        mat_dim = int(math.ceil(chrom_len['chr%d'%each]*1.0/res))
-        lr_contact_matrix = np.zeros((mat_dim,mat_dim))
-        for line in open(lr_hic_file).readlines():
-            idx1, idx2, value = int(line.strip().split('\t')[0]),int(line.strip().split('\t')[1]),float(line.strip().split('\t')[2])
-            lr_contact_matrix[idx1/res][idx2/res] = value
-        lr_contact_matrix+= lr_contact_matrix.T - np.diag(lr_contact_matrix.diagonal())
-        lr_contacts_dict['chr%d'%each] = lr_contact_matrix
-
-    nb_hr_contacts={item:sum(sum(hr_contacts_dict[item])) for item in hr_contacts_dict.keys()}
-    nb_lr_contacts={item:sum(sum(lr_contacts_dict[item])) for item in lr_contacts_dict.keys()}
-    max_hr_contact = max([nb_hr_contacts[item] for item in nb_hr_contacts.keys()])
-    max_lr_contact = max([nb_lr_contacts[item] for item in nb_lr_contacts.keys()])
-    
-    return hr_contacts_dict,lr_contacts_dict,max_hr_contact,max_lr_contact
-
-# In[78]:
-
-#uncommnet if not loading data
-# hr_contacts_dict,lr_contacts_dict,max_hr_contact,max_lr_contact = hic_matrix_extraction('/home/liuqiao/software/HiCPlus/data/GM12878_primary/aligned_read_pairs')
-
-# hr_contacts_norm_dict = {item:np.log2(hr_contacts_dict[item]*max_hr_contact/sum(sum(hr_contacts_dict[item]))+1) for item in hr_contacts_dict.keys()}
-# lr_contacts_norm_dict = {item:np.log2(lr_contacts_dict[item]*max_lr_contact/sum(sum(lr_contacts_dict[item]))+1) for item in lr_contacts_dict.keys()}
-# # In[118]:
-
-
-#Data preparation and preprocessing
-def crop_hic_matrix_by_chrom(chrom, size=40 ,thred=200):
-    #thred=2M/resolution
-    crop_mats_hr=[]
-    crop_mats_lr=[]
-    row,col = hr_contacts_norm_dict[chrom].shape
-    if row<=thred or col<=thred:
-        print 'HiC matrix size wrong!'
-        sys.exit()
-    def quality_control(mat,thred=0.1):
-        if len(mat.nonzero()[0])<thred*mat.shape[0]*mat.shape[1]:
-            return False
-        else:
-            return True
-        
-    for idx1 in range(0,row-size,size):
-        for idx2 in range(0,col-size,size):
-            if abs(idx1-idx2)<thred:
-                if quality_control(hr_contacts_norm_dict[chrom][idx1:idx1+size,idx2:idx2+size]):
-                    crop_mats_lr.append(lr_contacts_norm_dict[chrom][idx1:idx1+size,idx2:idx2+size])
-                    crop_mats_hr.append(hr_contacts_norm_dict[chrom][idx1:idx1+size,idx2:idx2+size])
-    crop_mats_hr = np.concatenate([item[np.newaxis,:] for item in crop_mats_hr],axis=0)
-    crop_mats_lr = np.concatenate([item[np.newaxis,:] for item in crop_mats_lr],axis=0)
-    return crop_mats_hr,crop_mats_lr 
-def training_data_split(train_chrom_list):
-    random.seed(100)
-    assert len(train_chrom_list)>0
-    hr_mats_train,lr_mats_train=[],[]
-    for chrom in train_chrom_list:
-        crop_mats_hr,crop_mats_lr = crop_hic_matrix_by_chrom(chrom, size=40 ,thred=200)
-        hr_mats_train.append(crop_mats_hr)
-        lr_mats_train.append(crop_mats_lr)
-    hr_mats_train = np.concatenate(hr_mats_train,axis=0)
-    lr_mats_train = np.concatenate(lr_mats_train,axis=0)
-    hr_mats_train=hr_mats_train[:,np.newaxis]
-    lr_mats_train=lr_mats_train[:,np.newaxis]
-    hr_mats_train=hr_mats_train.transpose((0,2,3,1))
-    lr_mats_train=lr_mats_train.transpose((0,2,3,1))
-    train_shuffle_list = list(range(len(hr_mats_train)))
-    hr_mats_train = hr_mats_train[train_shuffle_list]
-    lr_mats_train = lr_mats_train[train_shuffle_list]
-    return hr_mats_train,lr_mats_train
-
-
-
-# In[119]:
-
-
-#hr_mats_train,lr_mats_train = training_data_split(['chr%d'%idx for idx in list(range(1,18))])
-lr_mats_train,hr_mats_train = hkl.load('./train_data.hkl')
-
-#hr_mats_train_scaled = [item*2.0/item.max()-1 for item in hr_mats_train]
-#lr_mats_train_scaled = [item*2.0/item.max()-1 for item in lr_mats_train]
-
-
-
-# In[123]:
+#load data
+lr_mats_train,hr_mats_train = hkl.load('data/%s/train_test_split/train_data.hkl'%cell)
 
 
 # Model implementation
@@ -160,18 +60,11 @@ def hicGAN_g(t_image, is_train=False, reuse=False):
             nn = BatchNormLayer(nn, is_train=is_train, gamma_init=g_init, name='n64s1/b2/%s' % i)
             nn = ElementwiseLayer([n, nn], tf.add, name='b_residual_add/%s' % i)
             n = nn
-
         n = Conv2d(n, 64, (3, 3), (1, 1), act=None, padding='SAME', W_init=w_init, b_init=b_init, name='n64s1/c/m')
         n = BatchNormLayer(n, is_train=is_train, gamma_init=g_init, name='n64s1/b/m')
         n = ElementwiseLayer([n, temp], tf.add, name='add3')
         # B residual blacks end. output shape: (None,w,h,64)
-
         n = Conv2d(n, 128, (3, 3), (1, 1), act=None, padding='SAME', W_init=w_init, name='n256s1/1')
-        #n = SubpixelConv2d(n, scale=2, n_out_channel=None, act=tf.nn.relu, name='pixelshufflerx2/1')
-
-        #n = Conv2d(n, 256, (3, 3), (1, 1), act=None, padding='SAME', W_init=w_init, name='n256s1/2')
-        #n = SubpixelConv2d(n, scale=2, n_out_channel=None, act=tf.nn.relu, name='pixelshufflerx2/2')
-
         n = Conv2d(n, 1, (1, 1), (1, 1), act=tf.nn.tanh, padding='SAME', W_init=w_init, name='out')
         return n
     
@@ -214,10 +107,6 @@ def hicGAN_d(t_image, is_train=False, reuse=False):
         n.outputs = tf.nn.sigmoid(n.outputs)
 
         return n, logits
-
-
-# In[124]:
-
 
 t_image = tf.placeholder('float32', [batch_size, 40, 40, 1], name='input_to_generator')
 t_target_image = tf.placeholder('float32', [batch_size, 40, 40, 1], name='t_target_hic_image')
@@ -289,10 +178,6 @@ summary_writer=tf.summary.FileWriter('%s'%graph_dir,graph=tf.get_default_graph()
 #if (epoch != 0) and (epoch % 10 == 0):
 #tl.files.save_npz(net_g.all_params, name=checkpoint + '/g_{}_init_{}.npz'.format(tl.global_flag['mode'],epoch), sess=sess)
 
-
-# In[128]:
-
-
 ###========================= train GAN (hicGAN) =========================###
 
 f_out = open('%s/train.log'%log_dir,'w')
@@ -343,14 +228,10 @@ for epoch in range(0, n_epoch + 1):
 #         print("[*] save images")
 #         tl.vis.save_images(out, [ni, ni], save_dir_gan + '/train_%d.png' % epoch)
 
-    ## save model
+    ## save model every 5 epochs
     if (epoch <=5) or ((epoch != 0) and (epoch % 5 == 0)):
         tl.files.save_npz(net_g.all_params, name=checkpoint + '/g_{}_{}.npz'.format(tl.global_flag['mode'],epoch), sess=sess)
         tl.files.save_npz(net_d.all_params, name=checkpoint + '/d_{}_{}.npz'.format(tl.global_flag['mode'],epoch), sess=sess)
-
-
-# In[131]:
-
 
 #out = sess.run(net_g.outputs, {t_image: test_sample})
 

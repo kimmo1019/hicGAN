@@ -2,20 +2,16 @@ import os, time, pickle, sys, math,random
 import numpy as np
 import hickle as hkl
 
-
-data_path = sys.argv[1].rstrip('/')
-save_dir = sys.argv[2].rstrip('/')
-if not os.path.exists(data_path):
-    print 'Data path wrong!'
+cell=sys.argv[1]
+if not os.path.exists('data/%s'%cell):
+    print 'Data path wrong,please input the right data path.'
     sys.exit()
-if not os.path.exists(save_dir):
-    os.makedirs(save_dir)
 
 def hic_matrix_extraction(DPATH,res=10000,norm_method='NONE'):
     chrom_list = list(range(1,23))#chr1-chr22
     hr_contacts_dict={}
     for each in chrom_list:
-        hr_hic_file = '%s/intra_%s/chr%d_10k_intra_%s.txt'%(DPATH,norm_method,each,norm_method)
+        hr_hic_file = 'data/%s/intra_%s/chr%d_10k_intra_%s.txt'%(DPATH,norm_method,each,norm_method)
         chrom_len = {item.split()[0]:int(item.strip().split()[1]) for item in open('chromosome.txt').readlines()}
         mat_dim = int(math.ceil(chrom_len['chr%d'%each]*1.0/res))
         hr_contact_matrix = np.zeros((mat_dim,mat_dim))
@@ -26,7 +22,7 @@ def hic_matrix_extraction(DPATH,res=10000,norm_method='NONE'):
         hr_contacts_dict['chr%d'%each] = hr_contact_matrix
     lr_contacts_dict={}
     for each in chrom_list:
-        lr_hic_file = '%s/intra_%s/chr%d_10k_intra_%s_downsample_ratio16.txt'%(DPATH,norm_method,each,norm_method)
+        lr_hic_file = 'data/%s/intra_%s/chr%d_10k_intra_%s_downsample_ratio16.txt'%(DPATH,norm_method,each,norm_method)
         chrom_len = {item.split()[0]:int(item.strip().split()[1]) for item in open('chromosome.txt').readlines()}
         mat_dim = int(math.ceil(chrom_len['chr%d'%each]*1.0/res))
         lr_contact_matrix = np.zeros((mat_dim,mat_dim))
@@ -41,31 +37,32 @@ def hic_matrix_extraction(DPATH,res=10000,norm_method='NONE'):
     
     return hr_contacts_dict,lr_contacts_dict,nb_hr_contacts,nb_lr_contacts
 
-hr_contacts_dict,lr_contacts_dict,nb_hr_contacts,nb_lr_contacts = hic_matrix_extraction(data_path)
+hr_contacts_dict,lr_contacts_dict,nb_hr_contacts,nb_lr_contacts = hic_matrix_extraction(cell)
 
 max_hr_contact = max([nb_hr_contacts[item] for item in nb_hr_contacts.keys()])
 max_lr_contact = max([nb_lr_contacts[item] for item in nb_lr_contacts.keys()])
 
+#normalization
 hr_contacts_norm_dict = {item:np.log2(hr_contacts_dict[item]*max_hr_contact/sum(sum(hr_contacts_dict[item]))+1) for item in hr_contacts_dict.keys()}
 lr_contacts_norm_dict = {item:np.log2(lr_contacts_dict[item]*max_lr_contact/sum(sum(lr_contacts_dict[item]))+1) for item in lr_contacts_dict.keys()}
 
 max_hr_contact_norm={item:hr_contacts_norm_dict[item].max() for item in hr_contacts_dict.keys()}
 max_lr_contact_norm={item:lr_contacts_norm_dict[item].max() for item in lr_contacts_dict.keys()}
 
-hkl.dump(nb_hr_contacts,'%s/nb_hr_contacts.hkl'%save_dir)
-hkl.dump(nb_lr_contacts,'%s/nb_lr_contacts.hkl'%save_dir)
+hkl.dump(nb_hr_contacts,'data/%s/nb_hr_contacts.hkl'%cell)
+hkl.dump(nb_lr_contacts,'data/%s/nb_lr_contacts.hkl'%cell)
 
 
-hkl.dump(max_hr_contact_norm,'%s/max_hr_contact_norm.hkl'%save_dir)
-hkl.dump(max_lr_contact_norm,'%s/max_lr_contact_norm.hkl'%save_dir)
+hkl.dump(max_hr_contact_norm,'data/%s/max_hr_contact_norm.hkl'%cell)
+hkl.dump(max_lr_contact_norm,'data/%s/max_lr_contact_norm.hkl'%cell)
 
 
 
-def crop_hic_matrix_by_chrom(chrom,norm_type,size=40 ,thred=200):
+def crop_hic_matrix_by_chrom(chrom,norm_type=0,size=40 ,thred=200):
     #thred=2M/resolution
     #norm_type=0-->raw count
     #norm_type=1-->log transformation
-    #norm_type=2-->scaled to[-1,1]after log transformation
+    #norm_type=2-->scaled to[-1,1]after log transformation, default
     #norm_type=3-->scaled to[0,1]after log transformation
     distance=[]
     crop_mats_hr=[]
@@ -129,80 +126,12 @@ def data_split(chrom_list,norm_type):
     return hr_mats,lr_mats,distance_all
 
 
-hr_mats_train,lr_mats_train,distance_train = data_split(['chr%d'%idx for idx in list(range(1,18))],norm_type=0)
-hr_mats_test,lr_mats_test,distance_test = data_split(['chr%d'%idx for idx in list(range(18,23))],norm_type=0)
-hkl.dump([lr_mats_train,hr_mats_train,distance_train],'%s/train_data_raw_count.hkl'%save_dir)
-hkl.dump([lr_mats_test,hr_mats_test,distance_test],'%s/test_data_raw_count.hkl'%save_dir)
-
-hr_mats_train,lr_mats_train,distance_train = data_split(['chr%d'%idx for idx in list(range(1,18))],norm_type=1)
-hr_mats_test,lr_mats_test,distance_test = data_split(['chr%d'%idx for idx in list(range(18,23))],norm_type=1)
-hkl.dump([lr_mats_train,hr_mats_train,distance_train],'%s/train_data_log_trans.hkl'%save_dir)
-hkl.dump([lr_mats_test,hr_mats_test,distance_test],'%s/test_data_log_trans.hkl'%save_dir)
-
 hr_mats_train,lr_mats_train,distance_train = data_split(['chr%d'%idx for idx in list(range(1,18))],norm_type=2)
 hr_mats_test,lr_mats_test,distance_test = data_split(['chr%d'%idx for idx in list(range(18,23))],norm_type=2)
-hkl.dump([lr_mats_train,hr_mats_train,distance_train],'%s/train_data_log_trans_scaled_sym.hkl'%save_dir)
-hkl.dump([lr_mats_test,hr_mats_test,distance_test],'%s/test_data_log_trans_scaled_sym.hkl'%save_dir)
-
-hr_mats_train,lr_mats_train,distance_train = data_split(['chr%d'%idx for idx in list(range(1,18))],norm_type=3)
-hr_mats_test,lr_mats_test,distance_test = data_split(['chr%d'%idx for idx in list(range(18,23))],norm_type=3)
-hkl.dump([lr_mats_train,hr_mats_train,distance_train],'%s/train_data_log_trans_scaled_asym.hkl'%save_dir)
-hkl.dump([lr_mats_test,hr_mats_test,distance_test],'%s/test_data_log_trans_scaled_asym.hkl'%save_dir)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+hkl.dump([lr_mats_train,hr_mats_train,distance_train],'data/%s/train_data.hkl'%cell)
+hkl.dump([lr_mats_test,hr_mats_test,distance_test],'data/%s/test_data.hkl'%cell)
+#uncomment to save the raw readscount data
+#hr_mats_train,lr_mats_train,distance_train = data_split(['chr%d'%idx for idx in list(range(1,18))],norm_type=0)
+#hr_mats_test,lr_mats_test,distance_test = data_split(['chr%d'%idx for idx in list(range(18,23))],norm_type=0)
+#hkl.dump([lr_mats_train,hr_mats_train,distance_train],'data/%s/train_data_raw_count.hkl'%cell)
+#hkl.dump([lr_mats_test,hr_mats_test,distance_test],'data/%s/test_data_raw_count.hkl'%cell)
