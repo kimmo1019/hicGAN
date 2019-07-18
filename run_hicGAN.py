@@ -1,6 +1,5 @@
 
 # coding: utf-8
-
 import os, time, pickle, random, time, sys, math
 from datetime import datetime
 import numpy as np
@@ -13,7 +12,6 @@ import matplotlib.pyplot as plt
 import hickle as hkl
 
 
-# In[126]:
 
 
 #GPU setting and Global parameters

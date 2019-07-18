@@ -57,8 +57,20 @@ We finally provide a `demo.ipynb` to implement the above steps with a demo of Hi
 
 Note that we also provide a pre-trained model of hicGAN which was trained in K562 cell line.
 
-
-
+# Citation
+Liu Q, Lv H, Jiang R. hicGAN infers super resolution Hi-C data with generative adversarial networks[J]. Bioinformatics, 2021, 35(14): i99-i107.
+```
+@article{liu2019hicgan,
+  title={hicGAN infers super resolution Hi-C data with generative adversarial networks},
+  author={Liu, Qiao and Lv, Hairong and Jiang, Rui},
+  journal={Bioinformatics},
+  volume={35},
+  number={14},
+  pages={i99--i107},
+  year={2019},
+  publisher={Oxford University Press}
+}
+```
 
 # License
 This project is licensed under the MIT License - see the LICENSE.md file for details
