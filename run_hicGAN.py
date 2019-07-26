@@ -28,11 +28,11 @@ tl.files.exists_or_mkdir(checkpoint)
 tl.files.exists_or_mkdir(save_dir_gan)
 tl.files.exists_or_mkdir(log_dir)
 batch_size = 128
-lr_init = 1e-5
+lr_init = 1e-4
 beta1 = 0.9
 ## initialize G
 n_epoch_init = 1
-n_epoch = 3000
+n_epoch = 1000
 lr_decay = 0.1
 decay_every = int(n_epoch / 2)
 ni = int(np.sqrt(batch_size))
@@ -53,7 +53,7 @@ def hicGAN_g(t_image, is_train=False, reuse=False):
         n = Conv2d(n, 64, (3, 3), (1, 1), act=tf.nn.relu, padding='SAME', W_init=w_init, name='n64s1/c')
         temp = n
         # B residual blocks
-        for i in range(3):
+        for i in range(5):
             nn = Conv2d(n, 64, (3, 3), (1, 1), act=None, padding='SAME', W_init=w_init, b_init=b_init, name='n64s1/c1/%s' % i)
             nn = BatchNormLayer(nn, act=tf.nn.relu, is_train=is_train, gamma_init=g_init, name='n64s1/b1/%s' % i)
             nn = Conv2d(nn, 64, (3, 3), (1, 1), act=None, padding='SAME', W_init=w_init, b_init=b_init, name='n64s1/c2/%s' % i)
@@ -65,6 +65,7 @@ def hicGAN_g(t_image, is_train=False, reuse=False):
         n = ElementwiseLayer([n, temp], tf.add, name='add3')
         # B residual blacks end. output shape: (None,w,h,64)
         n = Conv2d(n, 128, (3, 3), (1, 1), act=None, padding='SAME', W_init=w_init, name='n256s1/1')
+        n = Conv2d(n, 256, (3, 3), (1, 1), act=None, padding='SAME', W_init=w_init, name='n256s1/2')
         n = Conv2d(n, 1, (1, 1), (1, 1), act=tf.nn.tanh, padding='SAME', W_init=w_init, name='out')
         return n
     
@@ -78,23 +79,23 @@ def hicGAN_d(t_image, is_train=False, reuse=False):
         n = InputLayer(t_image, name='in')
         n = Conv2d(n, 64, (3, 3), (1, 1), act=lrelu, padding='SAME', W_init=w_init, name='n64s1/c')
 
-        n = Conv2d(n, 64, (3, 3), (2, 2), act=lrelu, padding='SAME', W_init=w_init, b_init=b_init, name='n64s2/c')
-        n = BatchNormLayer(n, is_train=is_train, gamma_init=g_init, name='n64s2/b')
+        n = Conv2d(n, 64, (3, 3), (2, 2), act=lrelu, padding='SAME', W_init=w_init, b_init=b_init, name='n64s2/c1')
+        n = BatchNormLayer(n, is_train=is_train, gamma_init=g_init, name='n64s2/b1')
         #output shape: (None,w/2,h/2,64)
+        n = Conv2d(n, 64, (3, 3), (1, 1), act=lrelu, padding='SAME', W_init=w_init, b_init=b_init, name='n64s1/c2')
+        n = BatchNormLayer(n, is_train=is_train, gamma_init=g_init, name='n64s1/b2')
+
+        n = Conv2d(n, 64, (3, 3), (2, 2), act=lrelu, padding='SAME', W_init=w_init, b_init=b_init, name='n64s2/c3')
+        n = BatchNormLayer(n, is_train=is_train, gamma_init=g_init, name='n64s2/b3')
+        #output shape: (None,w/4,h/4,64)
+        n = Conv2d(n, 64, (3, 3), (1, 1), act=lrelu, padding='SAME', W_init=w_init, b_init=b_init, name='n64s1/c4')
+        n = BatchNormLayer(n, is_train=is_train, gamma_init=g_init, name='n64s1/b4')
+
+        n = Conv2d(n, 64, (3, 3), (2, 2), act=lrelu, padding='SAME', W_init=w_init, b_init=b_init, name='n64s2/c5')
+        n = BatchNormLayer(n, is_train=is_train, gamma_init=g_init, name='n64s2/b5')
+        #output shape: (None,w/8,h/8,256)
         n = Conv2d(n, 128, (3, 3), (1, 1), act=lrelu, padding='SAME', W_init=w_init, b_init=b_init, name='n128s1/c')
         n = BatchNormLayer(n, is_train=is_train, gamma_init=g_init, name='n128s1/b')
-
-        n = Conv2d(n, 128, (3, 3), (4, 4), act=lrelu, padding='SAME', W_init=w_init, b_init=b_init, name='n128s2/c')
-        n = BatchNormLayer(n, is_train=is_train, gamma_init=g_init, name='n128s2/b')
-        #output shape: (None,w/4,h/4,64)
-        #n = Conv2d(n, 256, (3, 3), (1, 1), act=lrelu, padding='SAME', W_init=w_init, b_init=b_init, name='n256s1/c')
-        #n = BatchNormLayer(n, is_train=is_train, gamma_init=g_init, name='n256s1/b')
-
-        #n = Conv2d(n, 256, (3, 3), (2, 2), act=lrelu, padding='SAME', W_init=w_init, b_init=b_init, name='n256s2/c')
-        #n = BatchNormLayer(n, is_train=is_train, gamma_init=g_init, name='n256s2/b')
-        #output shape: (None,w/8,h/8,256)
-        #n = Conv2d(n, 512, (3, 3), (1, 1), act=lrelu, padding='SAME', W_init=w_init, b_init=b_init, name='n512s1/c')
-        #n = BatchNormLayer(n, is_train=is_train, gamma_init=g_init, name='n512s1/b')
 
         #n = Conv2d(n, 512, (3, 3), (2, 2), act=lrelu, padding='SAME', W_init=w_init, b_init=b_init, name='n512s2/c')
         #n = BatchNormLayer(n, is_train=is_train, gamma_init=g_init, name='n512s2/b')
