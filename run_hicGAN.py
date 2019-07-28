@@ -40,7 +40,7 @@ ni = int(np.sqrt(batch_size))
 
 
 #load data
-lr_mats_train,hr_mats_train = hkl.load('data/%s/train_test_split/train_data.hkl'%cell)
+lr_mats_train,hr_mats_train = hkl.load('data/%s/train_data.hkl'%cell)
 
 
 # Model implementation
@@ -182,7 +182,6 @@ summary_writer=tf.summary.FileWriter('%s'%graph_dir,graph=tf.get_default_graph()
 ###========================= train GAN (hicGAN) =========================###
 
 f_out = open('%s/train.log'%log_dir,'w')
-#f_out1 = open('%s/train_detail.log'%log_dir,'w')
 for epoch in range(0, n_epoch + 1):
     ## update learning rate
     if epoch != 0 and (epoch % decay_every == 0):
