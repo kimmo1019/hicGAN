@@ -57,6 +57,7 @@ For example, one can run `python run_hicGAN 0 Checkpoint/GM12878 log/GM12878 Gra
 Note that `checkpoint` is the folder to save model and 'graph' is the folder for visualization with `TensorBoard` and `log` is the folder to save the loss during the training process. The three folders will be created if not exist.
 
 **Step 5**: Evaluate hicGAN model
+
 After model training, one can evaluate the hicGAN by calculating MSR, PSNR and SSIM measurements, just run the following commond
 ```shell
 python hicGAN_evaluate.py <GPU_ID> <checkpoint> <CELL>
