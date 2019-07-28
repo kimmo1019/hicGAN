@@ -48,6 +48,7 @@ python data_split.py  <CELL>
 For example, one can directly run `python data_split.py GM12878` to generate `train_data.hkl` and `test_data.hkl` under the `data/GM12878 data folder`. 
 
 **Step 4**: Run hicGAN model
+
 After preparing the training and test data, one can run the following commond to run hicGAN
 ```shell
 python run_hicGAN.py <gpu_id> <checkpoint> <log> <graph> <CELL>
