@@ -32,7 +32,7 @@ lr_init = 1e-4
 beta1 = 0.9
 ## initialize G
 n_epoch_init = 1
-n_epoch = 1000
+n_epoch = 500
 lr_decay = 0.1
 decay_every = int(n_epoch / 2)
 ni = int(np.sqrt(batch_size))
