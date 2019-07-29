@@ -39,7 +39,8 @@ ni = int(np.sqrt(batch_size))
 
 
 
-#load data
+#load data or construct with your own data. 
+#shape(lr_mats_train) = (nb_train,40,40,1), shape(hr_mats_train) = (nb_train,40,40,1)
 lr_mats_train,hr_mats_train = hkl.load('data/%s/train_data.hkl'%cell)
 
 
@@ -64,7 +65,7 @@ def hicGAN_g(t_image, is_train=False, reuse=False):
         n = BatchNormLayer(n, is_train=is_train, gamma_init=g_init, name='n64s1/b/m')
         n = ElementwiseLayer([n, temp], tf.add, name='add3')
         # B residual blacks end. output shape: (None,w,h,64)
-        n = Conv2d(n, 128, (3, 3), (1, 1), act=None, padding='SAME', W_init=w_init, name='n256s1/1')
+        n = Conv2d(n, 128, (3, 3), (1, 1), act=None, padding='SAME', W_init=w_init, name='n128s1/1')
         n = Conv2d(n, 256, (3, 3), (1, 1), act=None, padding='SAME', W_init=w_init, name='n256s1/2')
         n = Conv2d(n, 1, (1, 1), (1, 1), act=tf.nn.tanh, padding='SAME', W_init=w_init, name='out')
         return n
