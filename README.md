@@ -73,7 +73,7 @@ We provided instructions on implementing hicGAN model from raw aligned sequencin
 
 Note that `hr_mats_train` and `lr_mats_train` are high resolution Hi-C training samples and low resolution Hi-C training samples, respectively. The size of `hr_mats_train` and `lr_mats_train` are (nb_train,40,40,1) and (nb_train,40,40,1). 
 
-We extracted training examples in the original Hi-C matrices by cropping non-overlaping 40 by 40 squares within 2M bp. See details in `data_split.py`. Feel free to contact `liu-q16@mails.tsinghua.edu.cn` if you have any problem. 
+We extracted training examples in the original Hi-C matrices by cropping non-overlaping 40 by 40 squares (resolution: 10k bp) within 2M bp. See details in `data_split.py`. Feel free to contact `liu-q16@mails.tsinghua.edu.cn` if you have any problem. 
 
 # Citation
 **Liu Q**, Lv H, Jiang R. hicGAN infers super resolution Hi-C data with generative adversarial networks[J]. Bioinformatics, 2021, 35(14): i99-i107.
