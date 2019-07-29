@@ -68,6 +68,9 @@ We finally provide a `demo.ipynb` to implement the above steps with a demo of Hi
 
 Note that we also provide a pre-trained model of hicGAN which was trained in K562 cell line.
 
+# Run hicGAN on your own data
+We provided instructions on implementing hicGAN model from raw aligned sequencing reads. One could directly run hicGAN model with custom data by constructing `lr_mats_train` and `hr_mats_train` in `run_hicGAN.py` by your own. Note that `hr_mats_train` and `lr_mats_train` are high resolution Hi-C training samples and low resolution Hi-C training samples, respectively. The size of `hr_mats_train` and `lr_mats_train` are (nb_train,40,40,1) and (nb_train,40,40,1). We extracted training examples in the original Hi-C matrices by cropping non-overlaping 40 by 40 squares within 2M bp. See details in `data_split.py`. 
+
 # Citation
 **Liu Q**, Lv H, Jiang R. hicGAN infers super resolution Hi-C data with generative adversarial networks[J]. Bioinformatics, 2021, 35(14): i99-i107.
 ```
