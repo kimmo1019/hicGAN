@@ -60,13 +60,13 @@ Note that `checkpoint` is the folder to save model and 'graph' is the folder for
 
 After model training, one can evaluate the hicGAN by calculating MSR, PSNR and SSIM measurements, just run the following commond
 ```shell
-python hicGAN_evaluate.py <GPU_ID> <checkpoint> <CELL>
+python hicGAN_evaluate.py <GPU_ID> <hicGAN_g_model_path> <CELL>
 ```
-For example, one can run `python hicGAN_evaluate.py 0 Checkpoint/GM12878 GM12878` for model evaluation.
+For example, one can run `python hicGAN_evaluate.py 0 checkpoint/g_hicgan_300.npz GM12878` for model evaluation.
 
 We finally provide a `demo.ipynb` to implement the above steps with a demo of Hi-C model.
 
-Note that we also provide a pre-trained model of hicGAN which was trained in K562 cell line.
+Note that we also provide a pre-trained model of hicGAN which was trained in GM12878 cell line.
 
 # Run hicGAN on your own data
 We provided instructions on implementing hicGAN model from raw aligned sequencing reads. One could directly run hicGAN model with custom data by constructing `lr_mats_train` and `hr_mats_train` in `run_hicGAN.py` by your own. 
