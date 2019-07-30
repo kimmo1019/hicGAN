@@ -1,4 +1,3 @@
-
 # coding: utf-8
 import os, time, pickle, random, time, sys, math
 from datetime import datetime
@@ -13,9 +12,18 @@ import hickle as hkl
 from skimage.measure import compare_mse
 from skimage.measure import compare_ssim
 
-# In[126]:
-
-
+usage='''
+Usage: python run_hicGAN.py  <GPU_ID> <checkpoint> <graph> <CELL>
+-- a program for running hicGAN model
+OPTIONS:
+    <GPU_ID> -- GPU ID
+    <checkpoint> -- path to save model weights at different training epoch
+    <graph> -- path to save event file for TensorBoard visualization
+    <CELL> -- selected cell type
+'''
+if len(sys.argv)!=5:
+    print(usage)
+    sys.exit(1)
 #GPU setting and Global parameters
 os.environ["CUDA_VISIBLE_DEVICES"] = sys.argv[1]
 #checkpoint = "checkpoint"
@@ -139,7 +147,7 @@ def training_data_split(train_chrom_list):
 
 #hr_mats_train,lr_mats_train = training_data_split(['chr%d'%idx for idx in list(range(1,18))])
 #load training data
-#lr_mats_train_full,hr_mats_train_full = hkl.load('train_data_full.hkl')
+#lr_mats_train_full,hr_mats_train_full = hkl.load('data/%s/train_data_full.hkl'%cell_type)
 lr_mats_train_full,hr_mats_train_full = hkl.load('data/%s/train_data.hkl'%cell_type)
 
 lr_mats_train = lr_mats_train_full[:int(0.95*len(lr_mats_train_full))]
@@ -209,7 +217,7 @@ def hicGAN_d(t_image, is_train=False, reuse=False):
         #n = BatchNormLayer(n, is_train=is_train, gamma_init=g_init, name='n512s2/b')
         #output shape: (None,w/16,h/16,512)
         n = FlattenLayer(n, name='f')
-        n = DenseLayer(n, n_units=1024, act=lrelu, name='d1024')
+        n = DenseLayer(n, n_units=512, act=lrelu, name='d512')
         n = DenseLayer(n, n_units=1, name='out')
 
         logits = n.outputs
@@ -256,7 +264,7 @@ tf.summary.scalar("d_loss2", d_loss2)
 tf.summary.scalar("d_loss", d_loss)
 tf.summary.scalar("mse_loss", mse_loss)
 tf.summary.scalar("g_gan_loss", g_gan_loss)
-tf.summary.scalar("g_combine_loss", 5e-2*g_gan_loss+mse_loss)
+tf.summary.scalar("g_combine_loss", 1e-1*g_gan_loss+mse_loss)
 merged_summary = tf.summary.merge_all()
 
 #Model pretraining G
@@ -264,7 +272,7 @@ merged_summary = tf.summary.merge_all()
 sess = tf.Session(config=tf.ConfigProto(allow_soft_placement=True, log_device_placement=False))
 tl.layers.initialize_global_variables(sess)
 
-#record variables for tensorboard visualization
+#record variables for TensorBoard visualization
 summary_writer=tf.summary.FileWriter('%s'%graph_dir,graph=tf.get_default_graph())
 
 # sess.run(tf.assign(lr_v, lr_init))
@@ -301,7 +309,7 @@ summary_writer=tf.summary.FileWriter('%s'%graph_dir,graph=tf.get_default_graph()
 
 ###========================= train GAN (hicGAN) =========================###
 wait=0
-patience=30
+patience=20
 best_mse_val = np.inf
 for epoch in range(0, n_epoch + 1):
     ## update learning rate
@@ -341,9 +349,9 @@ for epoch in range(0, n_epoch + 1):
     if mse_val < best_mse_val:
         wait=0
         best_mse_val = mse_val
-        #save the best model
-        tl.files.save_npz(net_g.all_params, name=checkpoint + '/g_{}_{}.npz'.format(tl.global_flag['mode'],epoch), sess=sess)
-        tl.files.save_npz(net_d.all_params, name=checkpoint + '/d_{}_{}.npz'.format(tl.global_flag['mode'],epoch), sess=sess)
+        #save the model with minimal MSE in validation samples
+        tl.files.save_npz(net_g.all_params, name=checkpoint + '/g_{}_{}_best.npz'.format(tl.global_flag['mode'],epoch), sess=sess)
+        tl.files.save_npz(net_d.all_params, name=checkpoint + '/d_{}_{}_best.npz'.format(tl.global_flag['mode'],epoch), sess=sess)
     else:
         wait+=1
         if wait >= patience:
@@ -352,7 +360,7 @@ for epoch in range(0, n_epoch + 1):
 
     log = "[*] Epoch: [%2d/%2d] time: %4.4fs, d_loss: %.8f g_loss: %.8f valid_mse:%.8f\n" % (epoch, n_epoch, time.time() - epoch_time, total_d_loss / n_iter,total_g_loss / n_iter,mse_val)
     print(log)
-    #record variables
+    #record variables for TensorBoard visualization
     summary=sess.run(merged_summary,{t_image: b_imgs_input, t_target_image: b_imgs_target})
     summary_writer.add_summary(summary, epoch)
     
@@ -364,16 +372,14 @@ for epoch in range(0, n_epoch + 1):
 #         print("[*] save images")
 #         tl.vis.save_images(out, [ni, ni], save_dir_gan + '/train_%d.png' % epoch)
 
-    ## save model
-    #if (epoch <=5) or ((epoch != 0) and (epoch % 5 == 0)):
-    #    tl.files.save_npz(net_g.all_params, name=checkpoint + '/g_{}_{}.npz'.format(tl.global_flag['mode'],epoch), sess=sess)
-    #    tl.files.save_npz(net_d.all_params, name=checkpoint + '/d_{}_{}.npz'.format(tl.global_flag['mode'],epoch), sess=sess)
+    ## save model every 5 epochs
+    if (epoch <=5) or ((epoch != 0) and (epoch % 5 == 0)):
+        tl.files.save_npz(net_g.all_params, name=checkpoint + '/g_{}_{}.npz'.format(tl.global_flag['mode'],epoch), sess=sess)
+        tl.files.save_npz(net_d.all_params, name=checkpoint + '/d_{}_{}.npz'.format(tl.global_flag['mode'],epoch), sess=sess)
 
 
-# In[131]:
 
 
-#out = sess.run(net_g.outputs, {t_image: test_sample})
 
 
 

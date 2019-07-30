@@ -16,6 +16,7 @@ os.environ["CUDA_VISIBLE_DEVICES"] = sys.argv[1]
 model_path=sys.argv[2].rstrip('/')
 cell=sys.argv[3]
 
+
 def calculate_psnr(mat1,mat2):
     data_range=np.max(mat1)-np.min(mat1)
     err=compare_mse(mat1,mat2)
@@ -53,98 +54,26 @@ def hicGAN_g(t_image, is_train=False, reuse=False):
 t_image = tf.placeholder('float32', [None, None, None, 1], name='image_input')
 net_g = hicGAN_g(t_image, is_train=False, reuse=False)   
 
-def evaluate(gan_idx,batch=64):
+def hicGAN_predict(batch=64):
     sess = tf.Session(config=tf.ConfigProto(allow_soft_placement=True, log_device_placement=False))
     tl.layers.initialize_global_variables(sess)
-    tl.files.load_and_assign_npz(sess=sess, name='%s/g_hicgan_%d.npz'%(model_path,gan_idx), network=net_g)
+    tl.files.load_and_assign_npz(sess=sess, name=model_path, network=net_g)
     out = np.zeros(lr_mats_test.shape)
     for i in range(out.shape[0]/batch):
         out[batch*i:batch*(i+1)] = sess.run(net_g.outputs, {t_image: lr_mats_test[batch*i:batch*(i+1)]})
     out[batch*(i+1):] = sess.run(net_g.outputs, {t_image: lr_mats_test[batch*(i+1):]})
     return out
 
-lr_mats_test,hr_mats_test,distance_all=hkl.load('data/%s/test_data.hkl'%cell)
-f_out=open('model_selection.txt','w')
-mse_median_list=[]
-#model search index
-start_idx=10
-end_idx=1000
-for i in range(start,end_idx,5):
-    out = evaluate(i)
-    mse=np.median(map(compare_mse,out[:,:,:,0],hr_mats_test[:,:,:,0]))
-    mse_median_list.append(mse)
-    f_out.write('%d\t%.5f\t%s\n'%(start_idx+5*i,mse,model_path))
-best_idx = start+5*(mse_median_list.index(min(mse_median_list)))
+lr_mats_test,hr_mats_test,_=hkl.load('data/%s/test_data.hkl'%cell)
 
-sr_mats_pre = evaluate(best_idx)
-print 'The best model is gan_%d'%best_idx
-def trans_norm2readscount_hr(chrom,mat):
-    max_hr_contact = max([nb_hr_contacts[item] for item in nb_hr_contacts.keys()])
-    mat_hat=(mat+1)*0.5*max_hr_contact_norm[chrom]
-    return (np.exp2(mat_hat)-1)*nb_hr_contacts[chrom]/max_hr_contact
+sr_mats_pre = hicGAN_predict(64)
+np.savez('data/%s/hicGAN_predicted.npz'%cell)
     
-max_hr_contact_norm = hkl.load('data/%s/max_hr_contact_norm.hkl')
-max_lr_contact_norm = hkl.load('data/%s/max_lr_contact_norm.hkl')
-nb_hr_contacts = hkl.load('data/%s/nb_hr_contacts.hkl')
-nb_lr_contacts = hkl.load('data/%s/nb_lr_contacts.hkl')
-chrom_list=[item[1] for item in distance_all]
-sr_mats_pre_readscount=map(trans_norm2readscount_hr,chrom_list,sr_mats_pre[:,:,:,0])
 mse_hicGAN_norm=map(compare_mse,hr_mats_test[:,:,:,0],sr_mats_pre[:,:,:,0])
 psnr_hicGAN_norm=map(calculate_psnr,hr_mats_test[:,:,:,0],sr_mats_pre[:,:,:,0])
 ssim_hicGAN_norm=map(calculate_ssim,hr_mats_test[:,:,:,0],sr_mats_pre[:,:,:,0])
 print 'mse_hicGAN_norm:%.5f'%np.median(mse_hicGAN_norm)
 print 'psnr_hicGAN_norm:%.5f'%np.median(psnr_hicGAN_norm)
 print 'ssim_hicGAN_norm:%.5f'%np.median(ssim_hicGAN_norm)
-#uncomment to test with orginal readscount data
-#_,hr_mats_test_readscount,_ = hkl.load('data/GM12878/test_data_raw_count.hkl')
-#mse_hicGAN=map(compare_mse,hr_mats_test_readscount[:,:,:,0],sr_mats_pre_readscount)
-#psnr_hicGAN=map(calculate_psnr,hr_mats_test_readscount[:,:,:,0],sr_mats_pre_readscount)
-#ssim_hicGAN=map(calculate_ssim,hr_mats_test_readscount[:,:,:,0],sr_mats_pre_readscount)
-#print 'mse_hicGAN:%.5f'%np.median(mse_hicGAN)
-#print 'psnr_hicGAN:%.5f'%np.median(psnr_hicGAN)
-#print 'ssim_hicGAN:%.5f'%np.median(ssim_hicGAN)
 
-
-
-
-
-
-
-
-
-
-
-
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
+  
