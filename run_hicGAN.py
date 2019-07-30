@@ -10,27 +10,25 @@ import tensorlayer as tl
 from tensorlayer.layers import *
 import matplotlib.pyplot as plt
 import hickle as hkl
+from skimage.measure import compare_mse
+from skimage.measure import compare_ssim
 
-
+# In[126]:
 
 
 #GPU setting and Global parameters
-os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+os.environ["CUDA_VISIBLE_DEVICES"] = sys.argv[1]
 #checkpoint = "checkpoint"
-checkpoint = sys.argv[1]
-#log_dir = "log"
-log_dir = sys.argv[2]
+checkpoint = sys.argv[2]
 graph_dir = sys.argv[3]
-cell = sys.argv[4]
-save_dir_gan = "samples"
 tl.global_flag['mode']='hicgan'
 tl.files.exists_or_mkdir(checkpoint)
-tl.files.exists_or_mkdir(save_dir_gan)
-tl.files.exists_or_mkdir(log_dir)
+tl.files.exists_or_mkdir(graph_dir)
 batch_size = 128
 lr_init = 1e-4
+cell_type = sys.argv[4]
 beta1 = 0.9
-## initialize G
+#n_epoch_init = 100
 n_epoch_init = 1
 n_epoch = 500
 lr_decay = 0.1
@@ -38,13 +36,122 @@ decay_every = int(n_epoch / 2)
 ni = int(np.sqrt(batch_size))
 
 
+def calculate_psnr(mat1,mat2):
+    data_range=np.max(mat1)-np.min(mat1)
+    err=compare_mse(mat1,mat2)
+    return 10 * np.log10((data_range ** 2) / err)
 
-#load data or construct with your own data. 
-#shape(lr_mats_train) = (nb_train,40,40,1), shape(hr_mats_train) = (nb_train,40,40,1)
-lr_mats_train,hr_mats_train = hkl.load('data/%s/train_data.hkl'%cell)
+def calculate_ssim(mat1,mat2):
+    data_range=np.max(mat1)-np.min(mat1)
+    return compare_ssim(mat1,mat2,data_range=data_range)
+
+
+#Data preparation and preprocessing
+def hic_matrix_extraction(DPATH,res=10000,norm_method='NONE'):
+    chrom_list = list(range(1,23))#chr1-chr22
+    hr_contacts_dict={}
+    for each in chrom_list:
+        hr_hic_file = '%s/intra_%s/chr%d_10k_intra_%s.txt'%(DPATH,norm_method,each,norm_method)
+        chrom_len = {item.split()[0]:int(item.strip().split()[1]) for item in open('%s/chromosome.txt'%DPATH).readlines()}
+        mat_dim = int(math.ceil(chrom_len['chr%d'%each]*1.0/res))
+        hr_contact_matrix = np.zeros((mat_dim,mat_dim))
+        for line in open(hr_hic_file).readlines():
+            idx1, idx2, value = int(line.strip().split('\t')[0]),int(line.strip().split('\t')[1]),float(line.strip().split('\t')[2])
+            hr_contact_matrix[idx1/res][idx2/res] = value
+        hr_contact_matrix+= hr_contact_matrix.T - np.diag(hr_contact_matrix.diagonal())
+        hr_contacts_dict['chr%d'%each] = hr_contact_matrix
+    lr_contacts_dict={}
+    for each in chrom_list:
+        lr_hic_file = '%s/intra_%s/chr%d_10k_intra_%s_downsample_ratio16.txt'%(DPATH,norm_method,each,norm_method)
+        chrom_len = {item.split()[0]:int(item.strip().split()[1]) for item in open('%s/chromosome.txt'%DPATH).readlines()}
+        mat_dim = int(math.ceil(chrom_len['chr%d'%each]*1.0/res))
+        lr_contact_matrix = np.zeros((mat_dim,mat_dim))
+        for line in open(lr_hic_file).readlines():
+            idx1, idx2, value = int(line.strip().split('\t')[0]),int(line.strip().split('\t')[1]),float(line.strip().split('\t')[2])
+            lr_contact_matrix[idx1/res][idx2/res] = value
+        lr_contact_matrix+= lr_contact_matrix.T - np.diag(lr_contact_matrix.diagonal())
+        lr_contacts_dict['chr%d'%each] = lr_contact_matrix
+
+    nb_hr_contacts={item:sum(sum(hr_contacts_dict[item])) for item in hr_contacts_dict.keys()}
+    nb_lr_contacts={item:sum(sum(lr_contacts_dict[item])) for item in lr_contacts_dict.keys()}
+    max_hr_contact = max([nb_hr_contacts[item] for item in nb_hr_contacts.keys()])
+    max_lr_contact = max([nb_lr_contacts[item] for item in nb_lr_contacts.keys()])
+    
+    return hr_contacts_dict,lr_contacts_dict,max_hr_contact,max_lr_contact
+
+# In[78]:
+
+#uncommnet if not loading data
+# hr_contacts_dict,lr_contacts_dict,max_hr_contact,max_lr_contact = hic_matrix_extraction('/home/liuqiao/software/HiCPlus/data/GM12878_primary/aligned_read_pairs')
+
+# hr_contacts_norm_dict = {item:np.log2(hr_contacts_dict[item]*max_hr_contact/sum(sum(hr_contacts_dict[item]))+1) for item in hr_contacts_dict.keys()}
+# lr_contacts_norm_dict = {item:np.log2(lr_contacts_dict[item]*max_lr_contact/sum(sum(lr_contacts_dict[item]))+1) for item in lr_contacts_dict.keys()}
+# # In[118]:
+
+
+#Data preparation and preprocessing
+def crop_hic_matrix_by_chrom(chrom, size=40 ,thred=200):
+    #thred=2M/resolution
+    crop_mats_hr=[]
+    crop_mats_lr=[]
+    row,col = hr_contacts_norm_dict[chrom].shape
+    if row<=thred or col<=thred:
+        print 'HiC matrix size wrong!'
+        sys.exit()
+    def quality_control(mat,thred=0.1):
+        if len(mat.nonzero()[0])<thred*mat.shape[0]*mat.shape[1]:
+            return False
+        else:
+            return True
+        
+    for idx1 in range(0,row-size,size):
+        for idx2 in range(0,col-size,size):
+            if abs(idx1-idx2)<thred:
+                if quality_control(hr_contacts_norm_dict[chrom][idx1:idx1+size,idx2:idx2+size]):
+                    crop_mats_lr.append(lr_contacts_norm_dict[chrom][idx1:idx1+size,idx2:idx2+size])
+                    crop_mats_hr.append(hr_contacts_norm_dict[chrom][idx1:idx1+size,idx2:idx2+size])
+    crop_mats_hr = np.concatenate([item[np.newaxis,:] for item in crop_mats_hr],axis=0)
+    crop_mats_lr = np.concatenate([item[np.newaxis,:] for item in crop_mats_lr],axis=0)
+    return crop_mats_hr,crop_mats_lr 
+def training_data_split(train_chrom_list):
+    random.seed(100)
+    assert len(train_chrom_list)>0
+    hr_mats_train,lr_mats_train=[],[]
+    for chrom in train_chrom_list:
+        crop_mats_hr,crop_mats_lr = crop_hic_matrix_by_chrom(chrom, size=40 ,thred=200)
+        hr_mats_train.append(crop_mats_hr)
+        lr_mats_train.append(crop_mats_lr)
+    hr_mats_train = np.concatenate(hr_mats_train,axis=0)
+    lr_mats_train = np.concatenate(lr_mats_train,axis=0)
+    hr_mats_train=hr_mats_train[:,np.newaxis]
+    lr_mats_train=lr_mats_train[:,np.newaxis]
+    hr_mats_train=hr_mats_train.transpose((0,2,3,1))
+    lr_mats_train=lr_mats_train.transpose((0,2,3,1))
+    train_shuffle_list = list(range(len(hr_mats_train)))
+    hr_mats_train = hr_mats_train[train_shuffle_list]
+    lr_mats_train = lr_mats_train[train_shuffle_list]
+    return hr_mats_train,lr_mats_train
+
+
+
+# In[119]:
+
+
+#hr_mats_train,lr_mats_train = training_data_split(['chr%d'%idx for idx in list(range(1,18))])
+#load training data
+#lr_mats_train_full,hr_mats_train_full = hkl.load('train_data_full.hkl')
+lr_mats_train_full,hr_mats_train_full = hkl.load('data/%s/train_data.hkl'%cell_type)
+
+lr_mats_train = lr_mats_train_full[:int(0.95*len(lr_mats_train_full))]
+hr_mats_train = hr_mats_train_full[:int(0.95*len(hr_mats_train_full))]
+
+lr_mats_valid = lr_mats_train_full[int(0.95*len(lr_mats_train_full)):]
+hr_mats_valid = hr_mats_train_full[int(0.95*len(hr_mats_train_full)):]
+
 
 
 # Model implementation
+    
 def hicGAN_g(t_image, is_train=False, reuse=False):
     w_init = tf.random_normal_initializer(stddev=0.02)
     b_init = None  # tf.constant_initializer(value=0.0)
@@ -70,7 +177,7 @@ def hicGAN_g(t_image, is_train=False, reuse=False):
         n = Conv2d(n, 1, (1, 1), (1, 1), act=tf.nn.tanh, padding='SAME', W_init=w_init, name='out')
         return n
     
-    
+
 def hicGAN_d(t_image, is_train=False, reuse=False):
     w_init = tf.random_normal_initializer(stddev=0.02)
     b_init = None
@@ -110,8 +217,13 @@ def hicGAN_d(t_image, is_train=False, reuse=False):
 
         return n, logits
 
-t_image = tf.placeholder('float32', [batch_size, 40, 40, 1], name='input_to_generator')
-t_target_image = tf.placeholder('float32', [batch_size, 40, 40, 1], name='t_target_hic_image')
+
+
+# In[124]:
+
+
+t_image = tf.placeholder('float32', [None, 40, 40, 1], name='input_to_generator')
+t_target_image = tf.placeholder('float32', [None, 40, 40, 1], name='t_target_hic_image')
 
 net_g = hicGAN_g(t_image, is_train=True, reuse=False)
 net_d, logits_real = hicGAN_d(t_target_image, is_train=True, reuse=False)
@@ -125,11 +237,14 @@ g_gan_loss = 1e-1 * tl.cost.sigmoid_cross_entropy(logits_fake, tf.ones_like(logi
 mse_loss = tl.cost.mean_squared_error(net_g.outputs, t_target_image, is_mean=True)
 #g_loss = mse_loss + g_gan_loss
 g_loss = g_gan_loss
+#losses are all based on a batch data
 g_vars = tl.layers.get_variables_with_name('hicGAN_g', True, True)
 d_vars = tl.layers.get_variables_with_name('hicGAN_d', True, True)
 
 with tf.variable_scope('learning_rate'):
     lr_v = tf.Variable(lr_init, trainable=False)
+
+
 
 g_optim_init = tf.train.AdamOptimizer(lr_v, beta1=beta1).minimize(mse_loss, var_list=g_vars)
 g_optim = tf.train.AdamOptimizer(lr_v, beta1=beta1).minimize(g_loss, var_list=g_vars)
@@ -180,9 +295,14 @@ summary_writer=tf.summary.FileWriter('%s'%graph_dir,graph=tf.get_default_graph()
 #if (epoch != 0) and (epoch % 10 == 0):
 #tl.files.save_npz(net_g.all_params, name=checkpoint + '/g_{}_init_{}.npz'.format(tl.global_flag['mode'],epoch), sess=sess)
 
-###========================= train GAN (hicGAN) =========================###
 
-f_out = open('%s/train.log'%log_dir,'w')
+# In[128]:
+
+
+###========================= train GAN (hicGAN) =========================###
+wait=0
+patience=30
+best_mse_val = np.inf
 for epoch in range(0, n_epoch + 1):
     ## update learning rate
     if epoch != 0 and (epoch % decay_every == 0):
@@ -212,11 +332,26 @@ for epoch in range(0, n_epoch + 1):
         total_d_loss += errD
         total_g_loss += errG
         n_iter += 1
+    #validation
+    hr_mats_pre = np.zeros(hr_mats_valid.shape)
+    for i in range(hr_mats_pre.shape[0]/batch_size):
+        hr_mats_pre[batch_size*i:batch_size*(i+1)] = sess.run(net_g_test.outputs, {t_image: lr_mats_valid[batch_size*i:batch_size*(i+1)]})
+    hr_mats_pre[batch_size*(i+1):] = sess.run(net_g_test.outputs, {t_image: lr_mats_valid[batch_size*(i+1):]})
+    mse_val=np.median(map(compare_mse,hr_mats_pre[:,:,:,0],hr_mats_valid[:,:,:,0]))
+    if mse_val < best_mse_val:
+        wait=0
+        best_mse_val = mse_val
+        #save the best model
+        tl.files.save_npz(net_g.all_params, name=checkpoint + '/g_{}_{}.npz'.format(tl.global_flag['mode'],epoch), sess=sess)
+        tl.files.save_npz(net_d.all_params, name=checkpoint + '/d_{}_{}.npz'.format(tl.global_flag['mode'],epoch), sess=sess)
+    else:
+        wait+=1
+        if wait >= patience:
+            print "Early stopping! The validation median mse is %.6f\n"%best_mse_val
+            sys.exit() 
 
-    log = "[*] Epoch: [%2d/%2d] time: %4.4fs, d_loss: %.8f g_loss: %.8f\n" % (epoch, n_epoch, time.time() - epoch_time, total_d_loss / n_iter,
-                                                                            total_g_loss / n_iter)
+    log = "[*] Epoch: [%2d/%2d] time: %4.4fs, d_loss: %.8f g_loss: %.8f valid_mse:%.8f\n" % (epoch, n_epoch, time.time() - epoch_time, total_d_loss / n_iter,total_g_loss / n_iter,mse_val)
     print(log)
-    f_out.write(log)
     #record variables
     summary=sess.run(merged_summary,{t_image: b_imgs_input, t_target_image: b_imgs_target})
     summary_writer.add_summary(summary, epoch)
@@ -229,10 +364,14 @@ for epoch in range(0, n_epoch + 1):
 #         print("[*] save images")
 #         tl.vis.save_images(out, [ni, ni], save_dir_gan + '/train_%d.png' % epoch)
 
-    ## save model every 5 epochs
-    if (epoch <=5) or ((epoch != 0) and (epoch % 5 == 0)):
-        tl.files.save_npz(net_g.all_params, name=checkpoint + '/g_{}_{}.npz'.format(tl.global_flag['mode'],epoch), sess=sess)
-        tl.files.save_npz(net_d.all_params, name=checkpoint + '/d_{}_{}.npz'.format(tl.global_flag['mode'],epoch), sess=sess)
+    ## save model
+    #if (epoch <=5) or ((epoch != 0) and (epoch % 5 == 0)):
+    #    tl.files.save_npz(net_g.all_params, name=checkpoint + '/g_{}_{}.npz'.format(tl.global_flag['mode'],epoch), sess=sess)
+    #    tl.files.save_npz(net_d.all_params, name=checkpoint + '/d_{}_{}.npz'.format(tl.global_flag['mode'],epoch), sess=sess)
+
+
+# In[131]:
+
 
 #out = sess.run(net_g.outputs, {t_image: test_sample})
 
