@@ -11,6 +11,16 @@ import matplotlib.pyplot as plt
 from skimage.measure import compare_mse
 from skimage.measure import compare_ssim
 
+usage='''
+Usage: python hicGAN_evaluate.py [GPU_ID] [PATH-TO-MODEL] [CELL]
+-- a program for evaluating hicGAN
+[GPU_ID] : GPU ID 
+[PATH-TO-MODEL]: weights file for hicGAN_g(e.g. hicGAN_g_best.npz)
+[CELL]: selected cell type (e.g. GM12878)
+'''
+if len(sys.argv)!=4:
+    print usage
+    sys.exit(1)
 
 os.environ["CUDA_VISIBLE_DEVICES"] = sys.argv[1]
 model_path=sys.argv[2].rstrip('/')
@@ -71,9 +81,9 @@ np.savez('data/%s/hicGAN_predicted.npz'%cell)
     
 mse_hicGAN_norm=map(compare_mse,hr_mats_test[:,:,:,0],sr_mats_pre[:,:,:,0])
 psnr_hicGAN_norm=map(calculate_psnr,hr_mats_test[:,:,:,0],sr_mats_pre[:,:,:,0])
-ssim_hicGAN_norm=map(calculate_ssim,hr_mats_test[:,:,:,0],sr_mats_pre[:,:,:,0])
+#ssim_hicGAN_norm=map(calculate_ssim,hr_mats_test[:,:,:,0],sr_mats_pre[:,:,:,0])
 print 'mse_hicGAN_norm:%.5f'%np.median(mse_hicGAN_norm)
 print 'psnr_hicGAN_norm:%.5f'%np.median(psnr_hicGAN_norm)
-print 'ssim_hicGAN_norm:%.5f'%np.median(ssim_hicGAN_norm)
+#print 'ssim_hicGAN_norm:%.5f'%np.median(ssim_hicGAN_norm)
 
   
