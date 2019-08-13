@@ -71,11 +71,15 @@ Note that we also provide a pre-trained model of hicGAN which was trained in GM1
 # Run hicGAN on your own data
 We provided instructions on implementing hicGAN model from raw aligned sequencing reads. One could directly run hicGAN model with custom data by constructing low resolution data and corresponding high resolution data in `run_hicGAN.py` by your own. 
 
-You can find `lr_mats_train_full, hr_mats_train_full = hkl.load(''')` in `run_hicGAN.py`. All you need to do is to generate `lr_mats_train_full` and `hr_mats_train_full` by yourself. 
+You can find `lr_mats_train_full, hr_mats_train_full = hkl.load(...)` in `run_hicGAN.py`. All you need to do is to generate `lr_mats_train_full` and `hr_mats_train_full` by yourself. 
 
 Note that `hr_mats_train_full` and `lr_mats_train_full` are high resolution Hi-C training samples and low resolution Hi-C training samples, respectively. The size of `hr_mats_train_full` and `lr_mats_train_full` are (nb_train,40,40,1) and (nb_train,40,40,1). 
 
 We extracted training examples in the original Hi-C matrices by cropping non-overlaping 40 by 40 squares (resolution: 10k bp) within 2M bp. See details in `data_split.py`. Feel free to contact `liu-q16@mails.tsinghua.edu.cn` if you have any problem. 
+
+After model training, the trained model will be saved under the `checkpoint` folder. Next, one should also modify one line in `hicGAN_evaluate.py`, `lr_mats_test,hr_mats_test,_ = hkl.load(...)`. One should generate low resolution test data(`lr_mats_test`) and high resolution test data(`hr_mats_test`) by there own. 
+
+After model evaluating, the predictive outcome will be saved in `data/$CELL` folder in .npz format which should be the same size as `hr_mats_test`. One could use `np.load(...)` for reading the predicted data.
 
 # Citation
 **Liu Q**, Lv H, Jiang R. hicGAN infers super resolution Hi-C data with generative adversarial networks[J]. Bioinformatics, 2021, 35(14): i99-i107.
