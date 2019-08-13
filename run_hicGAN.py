@@ -147,7 +147,7 @@ def training_data_split(train_chrom_list):
 
 #hr_mats_train,lr_mats_train = training_data_split(['chr%d'%idx for idx in list(range(1,18))])
 #load training data
-#lr_mats_train_full,hr_mats_train_full = hkl.load('data/%s/train_data_full.hkl'%cell_type)
+#Comment the following line and construct lr_mats_train_full,hr_mats_train_full by you own if you want to run hicGAN with custom data.
 lr_mats_train_full,hr_mats_train_full = hkl.load('data/%s/train_data.hkl'%cell_type)
 
 lr_mats_train = lr_mats_train_full[:int(0.95*len(lr_mats_train_full))]
