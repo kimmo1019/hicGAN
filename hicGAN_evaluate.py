@@ -77,7 +77,7 @@ def hicGAN_predict(batch=64):
 lr_mats_test,hr_mats_test,_=hkl.load('data/%s/test_data.hkl'%cell)
 
 sr_mats_pre = hicGAN_predict(64)
-np.savez('data/%s/hicGAN_predicted.npz'%cell)
+np.savez('data/%s/hicGAN_predicted.npz'%cell,sr_mats_pre)
     
 mse_hicGAN_norm=map(compare_mse,hr_mats_test[:,:,:,0],sr_mats_pre[:,:,:,0])
 psnr_hicGAN_norm=map(calculate_psnr,hr_mats_test[:,:,:,0],sr_mats_pre[:,:,:,0])
