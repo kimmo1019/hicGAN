@@ -64,7 +64,9 @@ python hicGAN_evaluate.py <GPU_ID> <hicGAN_g_model> <CELL>
 ```
 For example, one can run `python hicGAN_evaluate.py 0 checkpoint/g_hicgan_300_best.npz GM12878` for model evaluation.
 
-We finally provide a `demo.ipynb` to implement the above steps with a demo of Hi-C model.
+We finally provide a `demo.ipynb` to illustrate the above steps with a demo of Hi-C model.
+
+We also provide a `Results_reproduce` to show how the results in our paper were produced.
 
 Note that we also provide a pre-trained model of hicGAN which was trained in GM12878 cell line.
 
