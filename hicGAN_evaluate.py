@@ -12,10 +12,10 @@ from skimage.measure import compare_mse
 from skimage.measure import compare_ssim
 
 usage='''
-Usage: python hicGAN_evaluate.py [GPU_ID] [PATH-TO-MODEL] [CELL]
+Usage: python hicGAN_evaluate.py [GPU_ID] [MODEL_FOLDER] [CELL]
 -- a program for evaluating hicGAN
 [GPU_ID] : GPU ID 
-[PATH-TO-MODEL]: weights file for hicGAN_g(e.g. hicGAN_g_best.npz)
+[MODEL_FOLDER]: folder path containing weights file for hicGAN_g(e.g. checkpoint)
 [CELL]: selected cell type (e.g. GM12878)
 '''
 if len(sys.argv)!=4:
@@ -30,7 +30,7 @@ cell=sys.argv[3]
 def calculate_psnr(mat1,mat2):
     data_range=np.max(mat1)-np.min(mat1)
     err=compare_mse(mat1,mat2)
-    return 10 * np.log10((data_range ** 2) / err)
+    return 0 if err==0 else 10 * np.log10((data_range ** 2) / err)
 
 def calculate_ssim(mat1,mat2):
     data_range=np.max(mat1)-np.min(mat1)
@@ -64,10 +64,10 @@ def hicGAN_g(t_image, is_train=False, reuse=False):
 t_image = tf.placeholder('float32', [None, None, None, 1], name='image_input')
 net_g = hicGAN_g(t_image, is_train=False, reuse=False)   
 
-def hicGAN_predict(batch=64):
+def hicGAN_predict(model_name,batch=64):
     sess = tf.Session(config=tf.ConfigProto(allow_soft_placement=True, log_device_placement=False))
     tl.layers.initialize_global_variables(sess)
-    tl.files.load_and_assign_npz(sess=sess, name=model_path, network=net_g)
+    tl.files.load_and_assign_npz(sess=sess, name=model_name, network=net_g)
     out = np.zeros(lr_mats_test.shape)
     for i in range(out.shape[0]/batch):
         out[batch*i:batch*(i+1)] = sess.run(net_g.outputs, {t_image: lr_mats_test[batch*i:batch*(i+1)]})
@@ -76,12 +76,19 @@ def hicGAN_predict(batch=64):
 #Comment the following line and constuct lr_mats_test,hr_mats_test by your own if you want to using custom data.
 lr_mats_test,hr_mats_test,_=hkl.load('data/%s/test_data.hkl'%cell)
 
-sr_mats_pre = hicGAN_predict(64)
+mse_list=[]
+for i in range(100,500,5):
+    pre = hicGAN_predict('%s/g_hicgan_%d.npz'%(model_path,i))
+    mse_list.append(np.median(map(compare_mse,pre[:,:,:,0],hr_mats_test[:,:,:,0])))
+
+best_model_idx = 100+5*(mse_list.index(min(mse_list)))
+sr_mats_pre = hicGAN_predict('%s/g_hicgan_%d.npz'%(model_path,best_model_idx))
 np.save('data/%s/hicGAN_predicted.npy'%cell,sr_mats_pre)
     
 mse_hicGAN_norm=map(compare_mse,hr_mats_test[:,:,:,0],sr_mats_pre[:,:,:,0])
 psnr_hicGAN_norm=map(calculate_psnr,hr_mats_test[:,:,:,0],sr_mats_pre[:,:,:,0])
 #ssim_hicGAN_norm=map(calculate_ssim,hr_mats_test[:,:,:,0],sr_mats_pre[:,:,:,0])
+print('The model with smallest MSE is g_hicgan_%d.npz'%best_model_idx)
 print 'mse_hicGAN_norm:%.5f'%np.median(mse_hicGAN_norm)
 print 'psnr_hicGAN_norm:%.5f'%np.median(psnr_hicGAN_norm)
 #print 'ssim_hicGAN_norm:%.5f'%np.median(ssim_hicGAN_norm)

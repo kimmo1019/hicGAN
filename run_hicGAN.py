@@ -350,8 +350,8 @@ for epoch in range(0, n_epoch + 1):
         wait=0
         best_mse_val = mse_val
         #save the model with minimal MSE in validation samples
-        tl.files.save_npz(net_g.all_params, name=checkpoint + '/g_{}_{}_best.npz'.format(tl.global_flag['mode'],epoch), sess=sess)
-        tl.files.save_npz(net_d.all_params, name=checkpoint + '/d_{}_{}_best.npz'.format(tl.global_flag['mode'],epoch), sess=sess)
+        tl.files.save_npz(net_g.all_params, name=checkpoint + '/g_{}_best.npz'.format(tl.global_flag['mode']), sess=sess)
+        tl.files.save_npz(net_d.all_params, name=checkpoint + '/d_{}_best.npz'.format(tl.global_flag['mode']), sess=sess)
     else:
         wait+=1
         if wait >= patience:
