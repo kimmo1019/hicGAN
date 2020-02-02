@@ -81,15 +81,23 @@ Note that `hr_mats_train_full` and `lr_mats_train_full` are high resolution Hi-C
 
 We extracted training examples in the original Hi-C matrices by cropping non-overlaping 40 by 40 squares (resolution: 10k bp) within 2M bp. See details in `data_split.py` if necessary. 
 
-**Step 2**: Modify one line in `hicGAN_evaluate.py`
+**Step 2**: Run `hicGAN_predict.py`
+After model training, the trained model will be saved under the `checkpoint` folder. For hicGAN prediction, we only need the weights file for generator network (e.g., g_hicgan_best.npz). When your preprared the test data with shape, then we can use trained generator network to enhance any input data by running the following commond:
 
-After model training, the trained model will be saved under the `checkpoint` folder. Next, one should also modify one line in `hicGAN_evaluate.py`, `lr_mats_test,hr_mats_test,_ = hkl.load(...)`. One should generate low resolution test data(`lr_mats_test`) and high resolution test data(`hr_mats_test`) by there own.
+```shell
+python hicGAN_predict.py <GPU_ID> <MODEL_FOLDER> <DATA_PATH> <SAVE_DIR>
 
-Then, one should run `hicGAN_evaluate.py`. Note that it is recommended to choose the best model for `hicGAN_g_model` (e.g. g_hicgan_300_best.npz).
+[GPU_ID] : GPU ID (e.g. 0)
 
-**Step 3**: Check the predicted outcome
+[MODEL_PATH]:  path for weights file for hicGAN_g(e.g. checkpoint/g_hicgan_best.npz)
 
-After model evaluating, the predicted outcome will be saved in `data/CELL/hicGAN_predicted.npz` which should be the same size as `hr_mats_test`. One could use `np.load(...)` for loading the predicted data as numpy arrays.
+[DATA_PATH]: data path for enhancing (e.g. lr_mat_test.npy)
+
+[SAVE_DIR]: save directory for predicted data 
+```
+
+The predcited data will be saved in `SAVE_DIR` folder.
+
 
 Feel free to contact `liu-q16@mails.tsinghua.edu.cn` if you have any problem in implementing your own hicGAN model.
 
