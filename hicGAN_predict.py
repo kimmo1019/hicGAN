@@ -14,7 +14,7 @@ Usage: python hicGAN_predict.py [GPU_ID] [MODEL_FOLDER]  [DATA_PATH] [SAVE_DIR]
 -- a program for  hicGAN prediction
 [GPU_ID] : GPU ID (e.g. 0)
 [MODEL_PATH]:  path for weights file for hicGAN_g(e.g. checkpoint/g_hicgan_best.npz)
-[DATA_PATH]: data path for enhancing (e.g. lr_mat_test.npy)
+[DATA_PATH]: data path for enhancing (e.g. lr_mats_test.npy)
 [SAVE_DIR]: save directory for predicted data 
 '''
 if len(sys.argv)!=5:
@@ -24,7 +24,7 @@ if len(sys.argv)!=5:
 os.environ["CUDA_VISIBLE_DEVICES"] = sys.argv[1]
 model_name=sys.argv[2]
 #constuct lr_mats_test by your own if you want to using custom data.
-lr_mat_test=np.load(sys.argv[3]) #with size (1,m,m,1)
+lr_mats_test=np.load(sys.argv[3]) #with shape (N,m,m,1)
 save_dir = sys.argv[4].rstrip('/')
 if not os.path.exists(save_dir):
     os.makedirs(save_dir)
@@ -61,9 +61,20 @@ def hicGAN_g(t_image, is_train=False, reuse=False):
 t_image = tf.placeholder('float32', [None, None, None, 1], name='image_input')
 net_g = hicGAN_g(t_image, is_train=False, reuse=False)  
 
+def hicGAN_predict(lr_mats_test,model_name,batch=64):
+    sess = tf.Session(config=tf.ConfigProto(allow_soft_placement=True, log_device_placement=False))
+    tl.layers.initialize_global_variables(sess)
+    tl.files.load_and_assign_npz(sess=sess, name=model_name, network=net_g)
+    out = np.zeros(lr_mats_test.shape)
+    if out.shape[0] <= batch:
+        out = sess.run(net_g.outputs, {t_image: lr_mats_test})
+        return out
+    else:
+        for i in range(out.shape[0] // batch):
+            out[batch*i:batch*(i+1)] = sess.run(net_g.outputs, {t_image: lr_mats_test[batch*i:batch*(i+1)]})
+        out[batch*(i+1):] = sess.run(net_g.outputs, {t_image: lr_mats_test[batch*(i+1):]})
+        return out
 
-sess = tf.Session(config=tf.ConfigProto(allow_soft_placement=True, log_device_placement=False))
-tl.layers.initialize_global_variables(sess)
-tl.files.load_and_assign_npz(sess=sess, name=model_name, network=net_g)
-hr_mat_pre = sess.run(net_g.outputs, {t_image: lr_mat_test})
-np.save('%s/hr_mat_pre.npy'%save_dir,hr_mat_pre)
+
+sr_mats_pre = hicGAN_predict(lr_mats_test,model_name)
+np.save('%s/sr_mats_pre.npy'%save_dir,sr_mats_pre)
