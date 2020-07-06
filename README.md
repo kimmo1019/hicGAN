@@ -62,7 +62,7 @@ After model training, one can evaluate the hicGAN by calculating MSR, PSNR and S
 ```shell
 python hicGAN_evaluate.py <GPU_ID> <MODEL_PATH> <CELL>
 ```
-For example, one can run `python hicGAN_evaluate.py 0 checkpoint GM12878` for model evaluation.
+For example, one can run `python hicGAN_evaluate.py 0 checkpoint GM12878` for model evaluation. The predicted data will be saved in `data/<CELL>` folder.
 
 We finally provide a `demo.ipynb` to illustrate the above steps with a demo of Hi-C model.
 
@@ -81,8 +81,17 @@ Note that `hr_mats_train_full` and `lr_mats_train_full` are high resolution Hi-C
 
 We extracted training examples in the original Hi-C matrices by cropping non-overlaping 40 by 40 squares (resolution: 10k bp) within 2M bp. See details in `data_split.py` if necessary. 
 
-**Step 2**: Run `hicGAN_predict.py`
-After model training, the trained model will be saved under the `checkpoint` folder. For hicGAN prediction, we only need the weights file for generator network (e.g., g_hicgan_best.npz). When your preprared the test data with shape, then we can use trained generator network to enhance any input data by running the following commond:
+**Step 2**: Modify one line in  `hicGAN_evaluate.py`
+
+You can find `lr_mats_test,hr_mats_test, _ = hkl.load(...)` in `hicGAN_evaluate.py`. All you need to do is to generate `lr_mats_test` and `hr_mats_test` by youself.
+
+Then run the following command:
+```shell
+python hicGAN_evaluate.py <GPU_ID> <MODEL_PATH> <CELL>
+```
+The predicted data will be saved in `data/<CELL>` folder.
+
+We also provided a script `hicGAN_predict.py` for which the ground truth of test data is unknown. One can run the following commond:
 
 ```shell
 python hicGAN_predict.py <GPU_ID> <MODEL_PATH> <DATA_PATH> <SAVE_DIR>
@@ -96,7 +105,7 @@ python hicGAN_predict.py <GPU_ID> <MODEL_PATH> <DATA_PATH> <SAVE_DIR>
 [SAVE_DIR]: save directory for predicted data 
 ```
 
-The predcited data will be saved in `SAVE_DIR` folder.
+You need to generate your own test data in `npy` format and use `DATA_PATH` to load it. The predcited data will be saved in `SAVE_DIR` folder.
 
 
 Feel free to contact `liu-q16@mails.tsinghua.edu.cn` if you have any problem in implementing your own hicGAN model.
