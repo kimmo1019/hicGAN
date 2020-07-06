@@ -53,7 +53,7 @@ After preparing the training and test data, one can run the following commond to
 ```shell
 python run_hicGAN.py <GPU_ID> <checkpoint> <graph> <CELL>
 ```
-For example, one can run `python run_hicGAN Checkpoint/GM12878 log/GM12878 Graph/GM12878 GM12878` 
+For example, one can run `python run_hicGAN.py Checkpoint/GM12878 log/GM12878 Graph/GM12878 GM12878` 
 Note that `checkpoint` is the folder to save model and 'graph' is the folder for visualization with `TensorBoard` and `log` is the folder to save the loss during the training process. The three folders will be created if not exist.
 
 **Step 5**: Evaluate hicGAN model
