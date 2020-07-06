@@ -85,7 +85,7 @@ We extracted training examples in the original Hi-C matrices by cropping non-ove
 After model training, the trained model will be saved under the `checkpoint` folder. For hicGAN prediction, we only need the weights file for generator network (e.g., g_hicgan_best.npz). When your preprared the test data with shape, then we can use trained generator network to enhance any input data by running the following commond:
 
 ```shell
-python hicGAN_predict.py <GPU_ID> <MODEL_FOLDER> <DATA_PATH> <SAVE_DIR>
+python hicGAN_predict.py <GPU_ID> <MODEL_PATH> <DATA_PATH> <SAVE_DIR>
 
 [GPU_ID] : GPU ID (e.g. 0)
 
