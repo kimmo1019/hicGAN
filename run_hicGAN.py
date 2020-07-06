@@ -26,7 +26,6 @@ if len(sys.argv)!=5:
     sys.exit(1)
 #GPU setting and Global parameters
 os.environ["CUDA_VISIBLE_DEVICES"] = sys.argv[1]
-#checkpoint = "checkpoint"
 checkpoint = sys.argv[2]
 graph_dir = sys.argv[3]
 tl.global_flag['mode']='hicgan'
@@ -36,7 +35,6 @@ batch_size = 128
 lr_init = 1e-4
 cell_type = sys.argv[4]
 beta1 = 0.9
-#n_epoch_init = 100
 n_epoch_init = 1
 n_epoch = 500
 lr_decay = 0.1
@@ -53,101 +51,7 @@ def calculate_ssim(mat1,mat2):
     data_range=np.max(mat1)-np.min(mat1)
     return compare_ssim(mat1,mat2,data_range=data_range)
 
-
-#Data preparation and preprocessing
-def hic_matrix_extraction(DPATH,res=10000,norm_method='NONE'):
-    chrom_list = list(range(1,23))#chr1-chr22
-    hr_contacts_dict={}
-    for each in chrom_list:
-        hr_hic_file = '%s/intra_%s/chr%d_10k_intra_%s.txt'%(DPATH,norm_method,each,norm_method)
-        chrom_len = {item.split()[0]:int(item.strip().split()[1]) for item in open('%s/chromosome.txt'%DPATH).readlines()}
-        mat_dim = int(math.ceil(chrom_len['chr%d'%each]*1.0/res))
-        hr_contact_matrix = np.zeros((mat_dim,mat_dim))
-        for line in open(hr_hic_file).readlines():
-            idx1, idx2, value = int(line.strip().split('\t')[0]),int(line.strip().split('\t')[1]),float(line.strip().split('\t')[2])
-            hr_contact_matrix[idx1/res][idx2/res] = value
-        hr_contact_matrix+= hr_contact_matrix.T - np.diag(hr_contact_matrix.diagonal())
-        hr_contacts_dict['chr%d'%each] = hr_contact_matrix
-    lr_contacts_dict={}
-    for each in chrom_list:
-        lr_hic_file = '%s/intra_%s/chr%d_10k_intra_%s_downsample_ratio16.txt'%(DPATH,norm_method,each,norm_method)
-        chrom_len = {item.split()[0]:int(item.strip().split()[1]) for item in open('%s/chromosome.txt'%DPATH).readlines()}
-        mat_dim = int(math.ceil(chrom_len['chr%d'%each]*1.0/res))
-        lr_contact_matrix = np.zeros((mat_dim,mat_dim))
-        for line in open(lr_hic_file).readlines():
-            idx1, idx2, value = int(line.strip().split('\t')[0]),int(line.strip().split('\t')[1]),float(line.strip().split('\t')[2])
-            lr_contact_matrix[idx1/res][idx2/res] = value
-        lr_contact_matrix+= lr_contact_matrix.T - np.diag(lr_contact_matrix.diagonal())
-        lr_contacts_dict['chr%d'%each] = lr_contact_matrix
-
-    nb_hr_contacts={item:sum(sum(hr_contacts_dict[item])) for item in hr_contacts_dict.keys()}
-    nb_lr_contacts={item:sum(sum(lr_contacts_dict[item])) for item in lr_contacts_dict.keys()}
-    max_hr_contact = max([nb_hr_contacts[item] for item in nb_hr_contacts.keys()])
-    max_lr_contact = max([nb_lr_contacts[item] for item in nb_lr_contacts.keys()])
-    
-    return hr_contacts_dict,lr_contacts_dict,max_hr_contact,max_lr_contact
-
-# In[78]:
-
-#uncommnet if not loading data
-# hr_contacts_dict,lr_contacts_dict,max_hr_contact,max_lr_contact = hic_matrix_extraction('/home/liuqiao/software/HiCPlus/data/GM12878_primary/aligned_read_pairs')
-
-# hr_contacts_norm_dict = {item:np.log2(hr_contacts_dict[item]*max_hr_contact/sum(sum(hr_contacts_dict[item]))+1) for item in hr_contacts_dict.keys()}
-# lr_contacts_norm_dict = {item:np.log2(lr_contacts_dict[item]*max_lr_contact/sum(sum(lr_contacts_dict[item]))+1) for item in lr_contacts_dict.keys()}
-# # In[118]:
-
-
-#Data preparation and preprocessing
-def crop_hic_matrix_by_chrom(chrom, size=40 ,thred=200):
-    #thred=2M/resolution
-    crop_mats_hr=[]
-    crop_mats_lr=[]
-    row,col = hr_contacts_norm_dict[chrom].shape
-    if row<=thred or col<=thred:
-        print 'HiC matrix size wrong!'
-        sys.exit()
-    def quality_control(mat,thred=0.1):
-        if len(mat.nonzero()[0])<thred*mat.shape[0]*mat.shape[1]:
-            return False
-        else:
-            return True
-        
-    for idx1 in range(0,row-size,size):
-        for idx2 in range(0,col-size,size):
-            if abs(idx1-idx2)<thred:
-                if quality_control(hr_contacts_norm_dict[chrom][idx1:idx1+size,idx2:idx2+size]):
-                    crop_mats_lr.append(lr_contacts_norm_dict[chrom][idx1:idx1+size,idx2:idx2+size])
-                    crop_mats_hr.append(hr_contacts_norm_dict[chrom][idx1:idx1+size,idx2:idx2+size])
-    crop_mats_hr = np.concatenate([item[np.newaxis,:] for item in crop_mats_hr],axis=0)
-    crop_mats_lr = np.concatenate([item[np.newaxis,:] for item in crop_mats_lr],axis=0)
-    return crop_mats_hr,crop_mats_lr 
-def training_data_split(train_chrom_list):
-    random.seed(100)
-    assert len(train_chrom_list)>0
-    hr_mats_train,lr_mats_train=[],[]
-    for chrom in train_chrom_list:
-        crop_mats_hr,crop_mats_lr = crop_hic_matrix_by_chrom(chrom, size=40 ,thred=200)
-        hr_mats_train.append(crop_mats_hr)
-        lr_mats_train.append(crop_mats_lr)
-    hr_mats_train = np.concatenate(hr_mats_train,axis=0)
-    lr_mats_train = np.concatenate(lr_mats_train,axis=0)
-    hr_mats_train=hr_mats_train[:,np.newaxis]
-    lr_mats_train=lr_mats_train[:,np.newaxis]
-    hr_mats_train=hr_mats_train.transpose((0,2,3,1))
-    lr_mats_train=lr_mats_train.transpose((0,2,3,1))
-    train_shuffle_list = list(range(len(hr_mats_train)))
-    hr_mats_train = hr_mats_train[train_shuffle_list]
-    lr_mats_train = lr_mats_train[train_shuffle_list]
-    return hr_mats_train,lr_mats_train
-
-
-
-# In[119]:
-
-
-#hr_mats_train,lr_mats_train = training_data_split(['chr%d'%idx for idx in list(range(1,18))])
-#load training data
-#Comment the following line and construct lr_mats_train_full,hr_mats_train_full by you own if you want to run hicGAN with custom data.
+#load data
 lr_mats_train_full,hr_mats_train_full = hkl.load('data/%s/train_data.hkl'%cell_type)
 
 lr_mats_train = lr_mats_train_full[:int(0.95*len(lr_mats_train_full))]
