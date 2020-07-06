@@ -26,7 +26,7 @@ java -Xmx50g  -jar $juicer_tool pre $DPATH/$CELL/total_merged_nodups_downsample_
 
 chromes=(1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 "X" "Y")
 
-#generate Hi-C raw contacts using iuicer tool
+#generate Hi-C raw contacts using juicer tool
 for chrom in ${chromes[@]}
 do
 	bash $PPATH/sbatch_juicer_script.sh $chrom $DPATH $CELL $resolution $juicer_path
