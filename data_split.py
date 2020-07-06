@@ -131,6 +131,7 @@ hr_mats_test,lr_mats_test,distance_test = data_split(['chr%d'%idx for idx in lis
 #hkl.dump([lr_mats_train,hr_mats_train,distance_train],'data/%s/train_data.hkl'%cell)
 hkl.dump([lr_mats_train,hr_mats_train],'data/%s/train_data.hkl'%cell)
 hkl.dump([lr_mats_test,hr_mats_test,distance_test],'data/%s/test_data.hkl'%cell)
+
 #uncomment to save the raw readscount data
 #hr_mats_train,lr_mats_train,distance_train = data_split(['chr%d'%idx for idx in list(range(1,18))],norm_type=0)
 #hr_mats_test,lr_mats_test,distance_test = data_split(['chr%d'%idx for idx in list(range(18,23))],norm_type=0)

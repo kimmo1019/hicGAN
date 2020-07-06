@@ -78,8 +78,7 @@ def hicGAN_predict(lr_mats_test,model_name,batch=64):
         out[batch*(i+1):] = sess.run(net_g.outputs, {t_image: lr_mats_test[batch*(i+1):]})
         return out
 #Comment the following line and constuct lr_mats_test,hr_mats_test by your own if you want to using custom data.
-lr_mats_test,hr_mats_test,_=hkl.load('data/%s/test_data.hkl'%cell)
-
+lr_mats_test,hr_mats_test, _ =hkl.load('data/%s/test_data.hkl'%cell)
 mse_list=[]
 for i in range(100,500,5):
     pre = hicGAN_predict(lr_mats_test,'%s/g_hicgan_%d.npz'%(model_path,i))
