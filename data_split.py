@@ -1,139 +1,120 @@
 import os, time, pickle, sys, math,random
 import numpy as np
+import scipy.sparse as sp
 import hickle as hkl
 
-cell=sys.argv[1]
-if not os.path.exists('data/%s'%cell):
-    print 'Data path wrong,please input the right data path.'
-    sys.exit()
 
-def hic_matrix_extraction(DPATH,res=10000,norm_method='NONE'):
+#stat total counts of each chromosome
+def get_stats_of_hic_count(cell,norm_method='NONE'):
+    nb_hr_contacts,nb_lr_contacts={},{}
     chrom_list = list(range(1,23))#chr1-chr22
-    hr_contacts_dict={}
     for each in chrom_list:
-        hr_hic_file = 'data/%s/intra_%s/chr%d_10k_intra_%s.txt'%(DPATH,norm_method,each,norm_method)
-        chrom_len = {item.split()[0]:int(item.strip().split()[1]) for item in open('chromosome.txt').readlines()}
-        mat_dim = int(math.ceil(chrom_len['chr%d'%each]*1.0/res))
-        hr_contact_matrix = np.zeros((mat_dim,mat_dim))
-        for line in open(hr_hic_file).readlines():
-            idx1, idx2, value = int(line.strip().split('\t')[0]),int(line.strip().split('\t')[1]),float(line.strip().split('\t')[2])
-            hr_contact_matrix[idx1/res][idx2/res] = value
-        hr_contact_matrix+= hr_contact_matrix.T - np.diag(hr_contact_matrix.diagonal())
-        hr_contacts_dict['chr%d'%each] = hr_contact_matrix
-    lr_contacts_dict={}
-    for each in chrom_list:
-        lr_hic_file = 'data/%s/intra_%s/chr%d_10k_intra_%s_downsample_ratio16.txt'%(DPATH,norm_method,each,norm_method)
-        chrom_len = {item.split()[0]:int(item.strip().split()[1]) for item in open('chromosome.txt').readlines()}
-        mat_dim = int(math.ceil(chrom_len['chr%d'%each]*1.0/res))
-        lr_contact_matrix = np.zeros((mat_dim,mat_dim))
-        for line in open(lr_hic_file).readlines():
-            idx1, idx2, value = int(line.strip().split('\t')[0]),int(line.strip().split('\t')[1]),float(line.strip().split('\t')[2])
-            lr_contact_matrix[idx1/res][idx2/res] = value
-        lr_contact_matrix+= lr_contact_matrix.T - np.diag(lr_contact_matrix.diagonal())
-        lr_contacts_dict['chr%d'%each] = lr_contact_matrix
-
-    nb_hr_contacts={item:sum(sum(hr_contacts_dict[item])) for item in hr_contacts_dict.keys()}
-    nb_lr_contacts={item:sum(sum(lr_contacts_dict[item])) for item in lr_contacts_dict.keys()}
+        hr_hic_file = 'data/%s/intra_%s/chr%d_10k_intra_%s.txt'%(cell,norm_method,each,norm_method)
+        lr_hic_file = 'data/%s/intra_%s/chr%d_10k_intra_%s_downsample_ratio16.txt'%(cell,norm_method,each,norm_method)
+        cmd_hr = ''' awk -F "\\t" '{sum += $3};END {print sum}' %s'''%hr_hic_file
+        cmd_lr = ''' awk -F "\\t" '{sum += $3};END {print sum}' %s'''%lr_hic_file
+        nb_hr_contacts['chr%d'%each] = int(os.popen(cmd_hr).readlines()[0].strip())
+        nb_lr_contacts['chr%d'%each] = int(os.popen(cmd_lr).readlines()[0].strip())
+    return nb_hr_contacts,nb_lr_contacts
     
-    return hr_contacts_dict,lr_contacts_dict,nb_hr_contacts,nb_lr_contacts
 
-hr_contacts_dict,lr_contacts_dict,nb_hr_contacts,nb_lr_contacts = hic_matrix_extraction(cell)
+def hic_matrix_extraction(chrom, cell,res=10000,norm_method='NONE'):
+    max_hr_contact = max(nb_hr_contacts.values())
+    max_lr_contact = max(nb_lr_contacts.values())
+    hr_hic_file = 'data/%s/intra_%s/%s_10k_intra_%s.txt'%(cell,norm_method,chrom,norm_method)
+    mat_dim = int(math.ceil(chrom_len[chrom]*1.0/res))
+    count,row,col=[],[],[]
+    for line in open(hr_hic_file).readlines():
+        idx1, idx2, value = int(line.strip().split('\t')[0]),int(line.strip().split('\t')[1]),float(line.strip().split('\t')[2])
+        value = np.log2(value*max_hr_contact/nb_hr_contacts[chrom]+1)
+        if idx1==idx2:
+            count.append(value)
+            row.append(idx1 // res)
+            col.append(idx2 // res)
+        else:
+            count.append(value)
+            row.append(idx1 // res)
+            col.append(idx2 // res)
+            count.append(value)
+            row.append(idx2 // res)
+            col.append(idx1 // res)
+    hr_contact_sp_matrix = sp.csr_matrix((count,(row,col)),shape=(mat_dim,mat_dim))
+    lr_hic_file = 'data/%s/intra_%s/%s_10k_intra_%s_downsample_ratio16.txt'%(cell,norm_method,chrom,norm_method)
+    mat_dim = int(math.ceil(chrom_len[chrom]*1.0/res))
+    count,row,col=[],[],[]
+    for line in open(lr_hic_file).readlines():
+        idx1, idx2, value = int(line.strip().split('\t')[0]),int(line.strip().split('\t')[1]),float(line.strip().split('\t')[2])
+        value = np.log2(value*max_lr_contact/nb_lr_contacts[chrom]+1)
+        if idx1==idx2:
+            count.append(value)
+            row.append(idx1 // res)
+            col.append(idx2 // res)
+        else:
+            count.append(value)
+            row.append(idx1 // res)
+            col.append(idx2 // res)
+            count.append(value)
+            row.append(idx2 // res)
+            col.append(idx1 // res)
+    lr_contact_sp_matrix = sp.csr_matrix((count,(row,col)),shape=(mat_dim,mat_dim))
+    return hr_contact_sp_matrix,lr_contact_sp_matrix
 
-max_hr_contact = max([nb_hr_contacts[item] for item in nb_hr_contacts.keys()])
-max_lr_contact = max([nb_lr_contacts[item] for item in nb_lr_contacts.keys()])
 
-#normalization
-hr_contacts_norm_dict = {item:np.log2(hr_contacts_dict[item]*max_hr_contact/sum(sum(hr_contacts_dict[item]))+1) for item in hr_contacts_dict.keys()}
-lr_contacts_norm_dict = {item:np.log2(lr_contacts_dict[item]*max_lr_contact/sum(sum(lr_contacts_dict[item]))+1) for item in lr_contacts_dict.keys()}
-
-max_hr_contact_norm={item:hr_contacts_norm_dict[item].max() for item in hr_contacts_dict.keys()}
-max_lr_contact_norm={item:lr_contacts_norm_dict[item].max() for item in lr_contacts_dict.keys()}
-
-hkl.dump(nb_hr_contacts,'data/%s/nb_hr_contacts.hkl'%cell)
-hkl.dump(nb_lr_contacts,'data/%s/nb_lr_contacts.hkl'%cell)
-
-
-hkl.dump(max_hr_contact_norm,'data/%s/max_hr_contact_norm.hkl'%cell)
-hkl.dump(max_lr_contact_norm,'data/%s/max_lr_contact_norm.hkl'%cell)
-
-
-
-def crop_hic_matrix_by_chrom(chrom,norm_type=0,size=40 ,thred=200):
+def crop_hic_matrix_by_chrom(chrom, size=40 ,thred=200):
     #thred=2M/resolution
-    #norm_type=0-->raw count
-    #norm_type=1-->log transformation
-    #norm_type=2-->scaled to[-1,1]after log transformation, default
-    #norm_type=3-->scaled to[0,1]after log transformation
-    distance=[]
+    #norm-->scaled to[-1,1]after log transformation, default
+    distance=[] #record the location of a cropped mat in test data
     crop_mats_hr=[]
     crop_mats_lr=[]    
-    row,col = hr_contacts_norm_dict[chrom].shape
+    hr_contact_sp_matrix,lr_contact_sp_matrix = hic_matrix_extraction(chrom,cell)
+    row,col = hr_contact_sp_matrix.shape
     if row<=thred or col<=thred:
         print 'HiC matrix size wrong!'
         sys.exit()
-    def quality_control(mat,thred=0.05):
-        if len(mat.nonzero()[0])<thred*mat.shape[0]*mat.shape[1]:
+    def quality_control(sp_mat,thred=0.05):
+        if len(sp_mat.data)<thred*np.product(sp_mat.shape):
             return False
         else:
             return True
-        
     for idx1 in range(0,row-size,size):
         for idx2 in range(0,col-size,size):
             if abs(idx1-idx2)<thred:
-                if quality_control(lr_contacts_norm_dict[chrom][idx1:idx1+size,idx2:idx2+size]):
+                if quality_control(lr_contact_sp_matrix[idx1:idx1+size,idx2:idx2+size]):
                     distance.append([idx1-idx2,chrom])
-                    if norm_type==0:
-                        lr_contact = lr_contacts_dict[chrom][idx1:idx1+size,idx2:idx2+size]
-                        hr_contact = hr_contacts_dict[chrom][idx1:idx1+size,idx2:idx2+size]
-                    elif norm_type==1:
-                        lr_contact = lr_contacts_norm_dict[chrom][idx1:idx1+size,idx2:idx2+size]
-                        hr_contact = hr_contacts_norm_dict[chrom][idx1:idx1+size,idx2:idx2+size]
-                    elif norm_type==2:
-                        lr_contact_norm = lr_contacts_norm_dict[chrom][idx1:idx1+size,idx2:idx2+size]
-                        hr_contact_norm = hr_contacts_norm_dict[chrom][idx1:idx1+size,idx2:idx2+size]
-                        lr_contact = lr_contact_norm*2.0/max_lr_contact_norm[chrom]-1
-                        hr_contact = hr_contact_norm*2.0/max_hr_contact_norm[chrom]-1
-                    elif norm_type==3:
-                        lr_contact_norm = lr_contacts_norm_dict[chrom][idx1:idx1+size,idx2:idx2+size]
-                        hr_contact_norm = hr_contacts_norm_dict[chrom][idx1:idx1+size,idx2:idx2+size]
-                        lr_contact = lr_contact_norm*1.0/max_lr_contact_norm[chrom]
-                        hr_contact = hr_contact_norm*1.0/max_hr_contact_norm[chrom]
-                    else:
-                        print 'Normalization wrong!'
-                        sys.exit()
-                    
+                    lr_contact_crop = lr_contact_sp_matrix[idx1:idx1+size,idx2:idx2+size]
+                    hr_contact_crop = hr_contact_sp_matrix[idx1:idx1+size,idx2:idx2+size]
+                    lr_contact = lr_contact_crop.toarray()*2.0/lr_contact_sp_matrix.max() - 1
+                    hr_contact = hr_contact_crop.toarray()*2.0/hr_contact_sp_matrix.max() - 1
                     crop_mats_lr.append(lr_contact)
                     crop_mats_hr.append(hr_contact)
-    crop_mats_hr = np.concatenate([item[np.newaxis,:] for item in crop_mats_hr],axis=0)
-    crop_mats_lr = np.concatenate([item[np.newaxis,:] for item in crop_mats_lr],axis=0)
     return crop_mats_hr,crop_mats_lr,distance
-def data_split(chrom_list,norm_type):
+
+def data_split(chrom_list):
     random.seed(100)
     distance_all=[]
     assert len(chrom_list)>0
     hr_mats,lr_mats=[],[]
     for chrom in chrom_list:
-        crop_mats_hr,crop_mats_lr,distance = crop_hic_matrix_by_chrom(chrom,norm_type,size=40 ,thred=200)
-        distance_all+=distance
-        hr_mats.append(crop_mats_hr)
-        lr_mats.append(crop_mats_lr)
-    hr_mats = np.concatenate(hr_mats,axis=0)
-    lr_mats = np.concatenate(lr_mats,axis=0)
+        crop_mats_hr,crop_mats_lr,distance = crop_hic_matrix_by_chrom(chrom, size=40 ,thred=200)
+        distance_all += distance
+        hr_mats += crop_mats_hr
+        lr_mats += crop_mats_lr
+    hr_mats = np.stack(hr_mats)
+    lr_mats = np.stack(lr_mats)
     hr_mats=hr_mats[:,np.newaxis]
     lr_mats=lr_mats[:,np.newaxis]
     hr_mats=hr_mats.transpose((0,2,3,1))
     lr_mats=lr_mats.transpose((0,2,3,1))
     return hr_mats,lr_mats,distance_all
 
-
-hr_mats_train,lr_mats_train,distance_train = data_split(['chr%d'%idx for idx in list(range(1,18))],norm_type=2)
-hr_mats_test,lr_mats_test,distance_test = data_split(['chr%d'%idx for idx in list(range(18,23))],norm_type=2)
-#hkl.dump([lr_mats_train,hr_mats_train,distance_train],'data/%s/train_data.hkl'%cell)
-hkl.dump([lr_mats_train,hr_mats_train],'data/%s/train_data.hkl'%cell)
-hkl.dump([lr_mats_test,hr_mats_test,distance_test],'data/%s/test_data.hkl'%cell)
-
-#uncomment to save the raw readscount data
-#hr_mats_train,lr_mats_train,distance_train = data_split(['chr%d'%idx for idx in list(range(1,18))],norm_type=0)
-#hr_mats_test,lr_mats_test,distance_test = data_split(['chr%d'%idx for idx in list(range(18,23))],norm_type=0)
-#hkl.dump([lr_mats_train,hr_mats_train,distance_train],'data/%s/train_data_raw_count.hkl'%cell)
-#hkl.dump([lr_mats_test,hr_mats_test,distance_test],'data/%s/test_data_raw_count.hkl'%cell)
+if __name__=="__main__":
+    cell=sys.argv[1]
+    if not os.path.exists('data/%s'%cell):
+        print 'Data path wrong,please input the right data path.'
+        sys.exit()
+    chrom_len = {item.split()[0]:int(item.strip().split()[1]) for item in open('chromosome.txt').readlines()}
+    nb_hr_contacts,nb_lr_contacts = get_stats_of_hic_count(cell)
+    hr_mats_train,lr_mats_train,distance_train = data_split(['chr%d'%idx for idx in list(range(1,18))])
+    hr_mats_test,lr_mats_test,distance_test = data_split(['chr%d'%idx for idx in list(range(18,23))])
+    hkl.dump([lr_mats_train,hr_mats_train],'data/%s/train_data.hkl'%cell)
+    hkl.dump([lr_mats_test,hr_mats_test,distance_test],'data/%s/test_data.hkl'%cell)
