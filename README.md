@@ -111,7 +111,7 @@ You need to generate your own test data in `npy` format and use `DATA_PATH` to l
 Feel free to contact `liu-q16@mails.tsinghua.edu.cn` if you have any problem in implementing your own hicGAN model.
 
 # Citation
-**Liu Q**, Lv H, Jiang R. hicGAN infers super resolution Hi-C data with generative adversarial networks[J]. Bioinformatics, 2021, 35(14): i99-i107.
+**Liu Q**, Lv H, Jiang R. hicGAN infers super resolution Hi-C data with generative adversarial networks[J]. Bioinformatics, 2019, 35(14): i99-i107.
 ```
 @article{liu2019hicgan,
   title={hicGAN infers super resolution Hi-C data with generative adversarial networks},
