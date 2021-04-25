@@ -9,9 +9,9 @@ hicGAN consists of two networks that compete with each other. G tries to generat
 
 # Requirements
 - TensorFlow == 1.13.1
-- TensorLayer >= 1.9.1
-- hickle >= 2.1.0
-- Java JDK >= 1.8.0
+- TensorLayer == 1.9.1
+- hickle == 2.1.0
+- Java JDK == 1.8.0
 - Juicer Tool
 
 # Installation
