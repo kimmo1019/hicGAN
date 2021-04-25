@@ -8,7 +8,7 @@ This work has been presented in ISMB2019 conference in an oral talk during July 
 hicGAN consists of two networks that compete with each other. G tries to generate super resolution samples that are highly similar to real high resolution samples while D tries to discriminate generated super resolution samples from real high resolution Hi-C samples.
 
 # Requirements
-- TensorFlow >= 1.10.0
+- TensorFlow == 1.13.1
 - TensorLayer >= 1.9.1
 - hickle >= 2.1.0
 - Java JDK >= 1.8.0
@@ -19,7 +19,7 @@ hicGAN can be downloaded by
 ```shell
 git clone https://github.com/kimmo1019/hicGAN
 ```
-Installation has been tested in a Linux/MacOS platform.
+Installation has been tested in a Linux/MacOS platform with python2.7.
 
 # Instructions
 We provide detailed step-by-step instructions for running hicGAN model for reproducing the results in the original paper and inferring high resolution Hi-C data of your own interst.
