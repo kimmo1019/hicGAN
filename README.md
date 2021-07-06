@@ -108,7 +108,7 @@ python hicGAN_predict.py <GPU_ID> <MODEL_PATH> <DATA_PATH> <SAVE_DIR>
 You need to generate your own test data in `npy` format and use `DATA_PATH` to load it. The predcited data will be saved in `SAVE_DIR` folder.
 
 
-Feel free to contact `liu-q16@mails.tsinghua.edu.cn` if you have any problem in implementing your own hicGAN model.
+Feel free to contact `liuqiao@stanford.edu` if you have any problem in implementing your own hicGAN model.
 
 # Citation
 **Liu Q**, Lv H, Jiang R. hicGAN infers super resolution Hi-C data with generative adversarial networks[J]. Bioinformatics, 2019, 35(14): i99-i107.
